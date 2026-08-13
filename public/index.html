@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Randevu Al</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f8f7f5;--surface:#fff;--surface2:#f1efe9;--border:#e0ddd6;--border-strong:#c8c4bc;
+  --text:#1a1a18;--text-sec:#6b6860;--text-muted:#9e9b94;
+  --accent:#4f6ef7;--accent-bg:#eef1fe;--accent-text:#2d49c4;
+  --success-bg:#eaf3de;--success-text:#3b6d11;
+  --danger-bg:#fcebeb;--danger-text:#a32d2d;
+  --warning-bg:#faeeda;--warning-text:#854f0b;
+  --input-border:#8b5cf6;--input-border-focus:#4f6ef7;
+  --radius:8px;
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#181816;--surface:#242422;--surface2:#2e2e2b;--border:#3a3a36;--border-strong:#4e4e4a;
+  --text:#f0ede6;--text-sec:#a09d96;--text-muted:#6b6860;
+  --accent:#6b87ff;--accent-bg:#1a2040;--accent-text:#a0b0ff;
+  --success-bg:#172510;--success-text:#7acc44;
+  --danger-bg:#2a1010;--danger-text:#f08080;
+  --warning-bg:#2a1e08;--warning-text:#f0b060;
+}}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;line-height:1.5}
+.container{max-width:720px;margin:0 auto;padding:16px}
+h2.section-title{font-size:14px;font-weight:700;margin:22px 0 10px;color:var(--text)}
+.section-title:first-child{margin-top:0}
+.hint{font-size:12px;color:var(--text-muted);margin-bottom:12px}
+
+.state-msg{text-align:center;padding:32px 16px;color:var(--text-muted);font-size:13px}
+
+.urun-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.urun-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px}
+.urun-card .urun-gorsel{width:100%;aspect-ratio:3/4;border-radius:8px;background:var(--surface2);object-fit:cover;margin-bottom:8px;display:block}
+.urun-card .urun-ad{font-size:13px;font-weight:600;margin-bottom:2px}
+.urun-card .urun-fiyat{font-size:12px;color:var(--text-sec);margin-bottom:9px}
+.urun-card .urun-fiyat .eski{text-decoration:line-through;color:var(--text-muted);margin-right:5px}
+.variant-chips{display:flex;flex-wrap:wrap;gap:6px}
+.variant-chip{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border:1px solid var(--border-strong);border-radius:20px;background:var(--surface);color:var(--text-sec);font-size:12px;font-weight:500;cursor:pointer;transition:all .12s;font-family:inherit}
+.variant-chip:hover{background:var(--surface2)}
+.variant-chip.selected{background:var(--accent);color:#fff;border-color:transparent}
+.badge-bd{font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;background:var(--warning-bg);color:var(--warning-text);white-space:nowrap}
+.variant-chip.selected .badge-bd{background:rgba(255,255,255,.25);color:#fff}
+
+.secim-list{display:flex;flex-direction:column;gap:6px}
+.secim-item{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:12px}
+.secim-item img{width:34px;height:34px;border-radius:6px;object-fit:cover;background:var(--surface2);flex-shrink:0}
+.secim-item .secim-info{flex:1;min-width:0}
+.secim-item .secim-ad{font-weight:600}
+.secim-item .secim-detay{color:var(--text-muted)}
+.secim-item button{border:none;background:none;color:var(--text-muted);cursor:pointer;font-size:16px;line-height:1;padding:4px}
+.secim-item button:hover{color:var(--danger-text)}
+
+.form-group{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.form-group label{font-size:12px;font-weight:500;color:var(--text-sec)}
+.form-group input{height:38px;padding:0 12px;border:1px solid var(--input-border);border-radius:var(--radius);background:var(--surface2);color:var(--text);font-size:14px;font-family:inherit}
+.form-group input:focus{outline:none;border-color:var(--input-border-focus)}
+@media(max-width:600px){.form-group input{font-size:16px}}
+
+.warn-box{margin-bottom:12px;padding:9px 12px;background:var(--warning-bg);color:var(--warning-text);border-radius:8px;font-size:12px;line-height:1.5}
+#error-box{display:none;margin-bottom:12px;padding:9px 12px;background:var(--danger-bg);color:var(--danger-text);border-radius:8px;font-size:12px;line-height:1.5}
+
+.btn{height:42px;padding:0 18px;border:none;border-radius:var(--radius);background:var(--accent);color:#fff;font-size:14px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;width:100%;font-family:inherit;text-decoration:none}
+.btn:hover{opacity:.92}
+.btn:disabled{opacity:.55;cursor:default}
+
+.sonuc-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px}
+.sonuc-box h2{font-size:16px;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.sonuc-box p{font-size:13px;color:var(--text-sec);margin-bottom:14px;line-height:1.6}
+.sonuc-ozet{background:var(--surface2);border-radius:8px;padding:10px 12px;margin-bottom:16px;font-size:12px;color:var(--text-sec)}
+.sonuc-ozet div{margin-bottom:3px}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <div id="loading-state" class="state-msg">Ürünler yükleniyor...</div>
+  <div id="empty-state" class="state-msg hidden">Şu anda randevu alınabilecek ürün bulunmuyor.</div>
+
+  <form id="randevu-form" class="hidden">
+    <h2 class="section-title">Ürün Seçimi</h2>
+    <p class="hint">Randevu almak istediğiniz ürün(ler)i ve varyantlarını seçin.</p>
+    <div class="urun-grid" id="urun-grid"></div>
+
+    <div id="secim-section" class="hidden">
+      <h2 class="section-title">Seçimleriniz</h2>
+      <div class="secim-list" id="secim-list"></div>
+    </div>
+
+    <h2 class="section-title">Randevu Tarihi</h2>
+    <div id="bd-warn" class="warn-box hidden"></div>
+    <div class="form-group">
+      <label>Tarih</label>
+      <input type="date" id="randevu-tarihi" required>
+    </div>
+
+    <h2 class="section-title">İletişim Bilgileriniz</h2>
+    <div class="form-group">
+      <label>Ad Soyad</label>
+      <input type="text" id="musteri-adi" required autocomplete="name">
+    </div>
+    <div class="form-group">
+      <label>Telefon</label>
+      <input type="tel" id="musteri-telefon" required autocomplete="tel">
+    </div>
+    <div class="form-group">
+      <label>E-posta</label>
+      <input type="email" id="musteri-eposta" required autocomplete="email">
+    </div>
+
+    <div id="error-box"></div>
+
+    <button type="submit" class="btn" id="submit-btn">Randevu Oluştur</button>
+  </form>
+
+  <div id="sonuc-view" class="sonuc-box hidden">
+    <h2>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--success-text)" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>
+      Randevunuz Alındı
+    </h2>
+    <p>Randevu talebiniz kaydedildi, mağazamız en kısa sürede sizinle iletişime geçecek.</p>
+    <div class="sonuc-ozet" id="sonuc-ozet"></div>
+    <div id="depozito-wrap"></div>
+  </div>
+
+</div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getFirestore, collection, onSnapshot, doc, getDoc, addDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+const app = initializeApp({
+  apiKey:"AIzaSyBED4SOH13mpdpuGLHwG_wl6lhe1a4YNos",
+  authDomain:"stok-19117.firebaseapp.com",
+  projectId:"stok-19117",
+  storageBucket:"stok-19117.firebasestorage.app",
+  messagingSenderId:"599549832875",
+  appId:"1:599549832875:web:4570ade50e2731469091ee"
+});
+const db = getFirestore(app);
+
+let products = [];       // magaza_urunler dokümanları
+let selected = [];        // seçilen varyantlar: {urunId,urunAdi,urunKodu,sku,renk,beden,gorselUrl,bd}
+let depozitoLinki = '';
+
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+function fmt(n){ return Number(n||0).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function toISO(d){ const tz=d.getTimezoneOffset(); return new Date(d.getTime()-tz*60000).toISOString().slice(0,10); }
+function todayISO(){ return toISO(new Date()); }
+function addDaysISO(n){ const d=new Date(); d.setDate(d.getDate()+n); return toISO(d); }
+function selKey(urunId, sku){ return urunId+'::'+sku; }
+
+// ── Firestore ─────────────────────────────────────
+onSnapshot(collection(db,'magaza_urunler'), snap=>{
+  products = snap.docs.map(d=>({id:d.id, ...d.data()}));
+  document.getElementById('loading-state').classList.add('hidden');
+  if(!products.length){
+    document.getElementById('empty-state').classList.remove('hidden');
+    document.getElementById('randevu-form').classList.add('hidden');
+  } else {
+    document.getElementById('empty-state').classList.add('hidden');
+    document.getElementById('randevu-form').classList.remove('hidden');
+  }
+  renderUrunler();
+}, err=>{
+  document.getElementById('loading-state').textContent = 'Ürünler yüklenemedi: ' + err.message;
+});
+
+getDoc(doc(db,'config','randevuAyarlari')).then(snap=>{
+  depozitoLinki = snap.exists() ? (snap.data().depozitoLinki || '') : '';
+}).catch(()=>{});
+
+// ── Ürün / varyant seçimi ─────────────────────────
+function renderUrunler(){
+  const grid = document.getElementById('urun-grid');
+  grid.innerHTML = products.map(p=>{
+    const vars = p.varyantlar || [];
+    const indirimli = Number(p.indirimliFiyat||0);
+    const satis = Number(p.satisFiyati||0);
+    const fiyatHtml = (indirimli > 0 && indirimli < satis)
+      ? `<span class="eski">₺${fmt(satis)}</span>₺${fmt(indirimli)}`
+      : `₺${fmt(satis)}`;
+    const gorsel = vars.find(v=>v.gorselUrl)?.gorselUrl || '';
+    return `<div class="urun-card">
+      ${gorsel ? `<img class="urun-gorsel" src="${esc(gorsel)}" alt="${esc(p.ad)}" loading="lazy">` : ''}
+      <div class="urun-ad">${esc(p.ad)}</div>
+      <div class="urun-fiyat">${fiyatHtml}</div>
+      <div class="variant-chips">
+        ${vars.map(v=>{
+          const key = selKey(p.id, v.sku);
+          const secili = selected.some(s=>selKey(s.urunId,s.sku)===key);
+          return `<button type="button" class="variant-chip${secili?' selected':''}" data-uid="${esc(p.id)}" data-sku="${esc(v.sku)}">
+            ${esc(v.beden)} beden ${esc(v.renk)}
+            ${v.bd ? '<span class="badge-bd" title="Bu ürün Bursa depodan getirtilir, randevu en erken 3 gün sonra alınabilir">BD</span>' : ''}
+          </button>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }).join('');
+
+  grid.querySelectorAll('.variant-chip').forEach(btn=>{
+    btn.addEventListener('click', ()=> toggleVariant(btn.dataset.uid, btn.dataset.sku));
+  });
+}
+
+function toggleVariant(urunId, sku){
+  const p = products.find(x=>x.id===urunId); if(!p) return;
+  const v = (p.varyantlar||[]).find(x=>x.sku===sku); if(!v) return;
+  const key = selKey(urunId, sku);
+  const idx = selected.findIndex(s=>selKey(s.urunId,s.sku)===key);
+  if(idx>=0){
+    selected.splice(idx,1);
+  } else {
+    if(selected.length>=20){ alert('Bir randevuda en fazla 20 varyant seçilebilir.'); return; }
+    selected.push({
+      urunId: p.id, urunAdi: p.ad||'', urunKodu: p.kod||'',
+      sku: v.sku||'', renk: v.renk||'', beden: v.beden||'', gorselUrl: v.gorselUrl||'', bd: !!v.bd,
+    });
+  }
+  renderUrunler();
+  renderSecim();
+  updateDateConstraints();
+}
+
+function removeSelected(urunId, sku){
+  const key = selKey(urunId, sku);
+  selected = selected.filter(s=>selKey(s.urunId,s.sku)!==key);
+  renderUrunler();
+  renderSecim();
+  updateDateConstraints();
+}
+
+function renderSecim(){
+  const section = document.getElementById('secim-section');
+  const list = document.getElementById('secim-list');
+  if(!selected.length){ section.classList.add('hidden'); list.innerHTML=''; return; }
+  section.classList.remove('hidden');
+  list.innerHTML = selected.map(s=>`<div class="secim-item">
+    ${s.gorselUrl ? `<img src="${esc(s.gorselUrl)}" alt="">` : ''}
+    <div class="secim-info">
+      <div class="secim-ad">${esc(s.urunAdi)}</div>
+      <div class="secim-detay">${esc(s.beden)} beden ${esc(s.renk)}${s.bd ? ' · BD' : ''}</div>
+    </div>
+    <button type="button" data-uid="${esc(s.urunId)}" data-sku="${esc(s.sku)}" title="Kaldır">×</button>
+  </div>`).join('');
+  list.querySelectorAll('button[data-uid]').forEach(btn=>{
+    btn.addEventListener('click', ()=> removeSelected(btn.dataset.uid, btn.dataset.sku));
+  });
+}
+
+// ── Tarih kısıtı ──────────────────────────────────
+function updateDateConstraints(){
+  const anyBd = selected.some(s=>s.bd);
+  const min = anyBd ? addDaysISO(3) : todayISO();
+  const input = document.getElementById('randevu-tarihi');
+  input.min = min;
+  const warnBox = document.getElementById('bd-warn');
+  if(anyBd){
+    warnBox.textContent = 'Seçiminizde Bursa depodan (BD) getirtilen bir ürün var — randevu tarihi en erken ' + formatTR(min) + ' olabilir.';
+    warnBox.classList.remove('hidden');
+  } else {
+    warnBox.classList.add('hidden');
+  }
+  if(input.value && input.value < min){
+    input.value = '';
+    if(anyBd){
+      warnBox.textContent += ' Seçtiğiniz tarih bu kısıtla uyuşmadığı için temizlendi, lütfen tekrar seçin.';
+    }
+  }
+}
+function formatTR(iso){
+  const [y,m,d] = iso.split('-');
+  return `${d}.${m}.${y}`;
+}
+document.getElementById('randevu-tarihi').min = todayISO();
+
+// ── Form gönderimi ────────────────────────────────
+function showFormError(msg){
+  const box = document.getElementById('error-box');
+  box.textContent = msg;
+  box.style.display = 'block';
+}
+function hideFormError(){
+  document.getElementById('error-box').style.display = 'none';
+}
+
+function validateForm(){
+  if(!selected.length) return 'Lütfen en az bir ürün/varyant seçin.';
+  const tarih = document.getElementById('randevu-tarihi').value;
+  const min = document.getElementById('randevu-tarihi').min;
+  if(!tarih) return 'Lütfen randevu tarihi seçin.';
+  if(min && tarih < min) return 'Seçtiğiniz tarih artık geçerli değil, lütfen tekrar seçin.';
+  if(!document.getElementById('musteri-adi').value.trim()) return 'Lütfen adınızı girin.';
+  if(!document.getElementById('musteri-telefon').value.trim()) return 'Lütfen telefon numaranızı girin.';
+  if(!document.getElementById('musteri-eposta').value.trim()) return 'Lütfen e-posta adresinizi girin.';
+  return null;
+}
+
+document.getElementById('randevu-form').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  hideFormError();
+  const err = validateForm();
+  if(err){ showFormError(err); return; }
+
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true; btn.textContent = 'Kaydediliyor...';
+
+  const bdVarMi = selected.some(s=>s.bd);
+  const veri = {
+    musteriAdi: document.getElementById('musteri-adi').value.trim(),
+    musteriTelefon: document.getElementById('musteri-telefon').value.trim(),
+    musteriEposta: document.getElementById('musteri-eposta').value.trim(),
+    urunler: selected.map(s=>({...s})),
+    bdVarMi,
+    randevuTarihi: document.getElementById('randevu-tarihi').value,
+    randevuSaati: null,
+    durum: 'yeni',
+    olusturulmaTarihi: serverTimestamp(),
+    guncellemeTarihi: serverTimestamp(),
+  };
+
+  try{
+    await addDoc(collection(db,'randevular'), veri);
+    renderSonuc(veri);
+  }catch(err){
+    showFormError('Randevu kaydedilemedi, lütfen tekrar deneyin.');
+    btn.disabled = false; btn.textContent = 'Randevu Oluştur';
+  }
+});
+
+function renderSonuc(veri){
+  document.getElementById('randevu-form').classList.add('hidden');
+  document.getElementById('sonuc-view').classList.remove('hidden');
+  document.getElementById('sonuc-ozet').innerHTML = `
+    <div><b>Tarih:</b> ${formatTR(veri.randevuTarihi)}</div>
+    <div><b>Ürünler:</b> ${veri.urunler.map(u=>esc(u.urunAdi+' — '+u.beden+' beden '+u.renk)).join(', ')}</div>
+    <div><b>Ad Soyad:</b> ${esc(veri.musteriAdi)}</div>
+  `;
+  const wrap = document.getElementById('depozito-wrap');
+  if(depozitoLinki){
+    wrap.innerHTML = `<a class="btn" target="_blank" rel="noopener" href="${esc(depozitoLinki)}">Depozito Öde</a>`;
+  } else {
+    wrap.innerHTML = `<p style="font-size:12px;color:var(--text-muted)">Depozito ödeme linki henüz tanımlanmadı, mağaza sizinle iletişime geçecek.</p>`;
+  }
+}
+</script>
+</body>
+</html>

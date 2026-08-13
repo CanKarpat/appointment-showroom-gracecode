@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Randevu Yönetimi</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f8f7f5;--surface:#fff;--surface2:#f1efe9;--border:#e0ddd6;--border-strong:#c8c4bc;
+  --text:#1a1a18;--text-sec:#6b6860;--text-muted:#9e9b94;
+  --accent:#4f6ef7;--accent-bg:#eef1fe;--accent-text:#2d49c4;
+  --success-bg:#eaf3de;--success-text:#3b6d11;
+  --danger-bg:#fcebeb;--danger-text:#a32d2d;
+  --warning-bg:#faeeda;--warning-text:#854f0b;
+  --input-border:#8b5cf6;--input-border-focus:#4f6ef7;
+  --radius:8px;
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#181816;--surface:#242422;--surface2:#2e2e2b;--border:#3a3a36;--border-strong:#4e4e4a;
+  --text:#f0ede6;--text-sec:#a09d96;--text-muted:#6b6860;
+  --accent:#6b87ff;--accent-bg:#1a2040;--accent-text:#a0b0ff;
+  --success-bg:#172510;--success-text:#7acc44;
+  --danger-bg:#2a1010;--danger-text:#f08080;
+  --warning-bg:#2a1e08;--warning-text:#f0b060;
+}}
+:root[data-theme="light"]{
+  --bg:#f8f7f5;--surface:#fff;--surface2:#f1efe9;--border:#e0ddd6;--border-strong:#c8c4bc;
+  --text:#1a1a18;--text-sec:#6b6860;--text-muted:#9e9b94;
+  --accent:#4f6ef7;--accent-bg:#eef1fe;--accent-text:#2d49c4;
+  --success-bg:#eaf3de;--success-text:#3b6d11;
+  --danger-bg:#fcebeb;--danger-text:#a32d2d;
+  --warning-bg:#faeeda;--warning-text:#854f0b;
+}
+:root[data-theme="dark"]{
+  --bg:#181816;--surface:#242422;--surface2:#2e2e2b;--border:#3a3a36;--border-strong:#4e4e4a;
+  --text:#f0ede6;--text-sec:#a09d96;--text-muted:#6b6860;
+  --accent:#6b87ff;--accent-bg:#1a2040;--accent-text:#a0b0ff;
+  --success-bg:#172510;--success-text:#7acc44;
+  --danger-bg:#2a1010;--danger-text:#f08080;
+  --warning-bg:#2a1e08;--warning-text:#f0b060;
+}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px}
+header{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border);background:var(--surface);flex-wrap:wrap}
+header h1{font-size:15px;font-weight:700;white-space:nowrap}
+.sync-badge{font-size:11px;padding:3px 8px;border-radius:20px;display:flex;align-items:center;gap:4px}
+.sync-badge.online{background:var(--success-bg);color:var(--success-text)}
+.sync-badge.syncing{background:var(--warning-bg);color:var(--warning-text)}
+.sync-badge.offline{background:var(--danger-bg);color:var(--danger-text)}
+header .spacer{flex:1}
+
+.container{max-width:1400px;margin:0 auto;padding:14px 16px}
+.toolbar{display:flex;gap:7px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+.search-wrap{flex:1;min-width:180px;position:relative}
+.search-wrap svg{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text-muted);width:15px;height:15px;pointer-events:none}
+.search-wrap input{width:100%;height:36px;padding:0 10px 0 30px;border:1px solid var(--input-border);border-radius:var(--radius);background:var(--surface);color:var(--text);font-size:13px}
+.search-wrap input:focus{outline:none;border-color:var(--input-border-focus)}
+
+.btn{height:34px;padding:0 12px;border:1px solid var(--border-strong);border-radius:var(--radius);background:var(--surface);color:var(--text);font-size:12px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;transition:background .12s;font-family:inherit}
+.btn:hover{background:var(--surface2)}
+.btn.primary{background:var(--accent);color:#fff;border-color:transparent}
+.btn.primary:hover{opacity:.9}
+.btn.ghost{background:transparent;border-color:var(--border);color:var(--text-sec)}
+
+.table-wrap{overflow-x:auto;background:var(--surface);border:1px solid var(--border);border-radius:10px}
+table{width:100%;border-collapse:collapse;font-size:12px;min-width:1000px}
+th{padding:8px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--text-muted);text-align:left;border-bottom:1px solid var(--border);background:var(--surface2);white-space:nowrap}
+td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+tr:last-child td{border-bottom:none}
+
+.badge{font-size:10px;font-weight:600;padding:2px 7px;border-radius:9px;white-space:nowrap}
+.badge-bd{background:var(--warning-bg);color:var(--warning-text)}
+
+.urun-chip{display:inline-block;background:var(--surface2);border-radius:6px;padding:2px 7px;font-size:11px;margin:1px 3px 1px 0;white-space:nowrap}
+
+.inline-time{border:1px solid var(--input-border);border-radius:5px;padding:3px 5px;font-size:12px;font-weight:600;background:transparent;color:var(--text);font-family:inherit}
+.inline-time:focus{outline:none;border-color:var(--input-border-focus)}
+.inline-sel{border:1px solid var(--input-border);border-radius:5px;padding:2px 4px;font-size:11px;font-weight:600;background:transparent;color:var(--text);cursor:pointer;font-family:inherit}
+.inline-sel:focus{outline:none;border-color:var(--input-border-focus)}
+
+.icon-btn{background:none;border:none;cursor:pointer;color:var(--text-muted);padding:3px 5px;border-radius:5px;display:inline-flex;align-items:center;transition:all .12s}
+.icon-btn:hover{background:var(--surface2);color:var(--text)}
+.icon-btn.del:hover{background:var(--danger-bg);color:var(--danger-text)}
+
+.empty-state{text-align:center;padding:48px 20px;color:var(--text-muted)}
+
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;display:flex;align-items:center;justify-content:center;padding:16px}
+.modal-bg.hidden{display:none}
+.modal{background:var(--surface);border-radius:14px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.2);overflow:hidden;display:flex;flex-direction:column;max-height:90vh}
+.modal-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-shrink:0}
+.modal-header h2{font-size:16px;font-weight:600;flex:1}
+.modal-body{padding:20px;overflow-y:auto;flex:1;font-size:13px;line-height:1.7;color:var(--text-sec)}
+.modal-footer{padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;flex-shrink:0}
+
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-group label{font-size:12px;font-weight:500;color:var(--text-sec)}
+.form-group input{padding:8px 10px;border:1px solid var(--input-border);border-radius:var(--radius);background:var(--surface2);color:var(--text);font-size:13px;font-family:inherit}
+.form-group input:focus{outline:none;border-color:var(--input-border-focus)}
+</style>
+</head>
+<body>
+
+<header>
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+  <h1>Randevu Yönetimi</h1>
+  <span class="sync-badge offline" id="sync-badge">● Bağlanıyor</span>
+  <div class="spacer"></div>
+  <button class="btn ghost" onclick="showRandevuSettingsModal()">Ayarlar</button>
+  <button class="btn ghost" id="theme-toggle" style="width:34px;padding:0;justify-content:center" onclick="toggleTheme()" title="Görünüm modu (açık/koyu)">
+    <svg id="theme-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"></svg>
+  </button>
+  <span id="user-email" style="font-size:11px;color:var(--text-muted);white-space:nowrap"></span>
+  <button class="btn ghost" onclick="logout()">Çıkış</button>
+</header>
+
+<div class="container">
+  <div class="toolbar">
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+      <input type="text" id="search" placeholder="Müşteri adı veya telefon ara...">
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Tarih</th><th>Saat</th><th>Müşteri</th><th>Telefon</th><th>E-posta</th>
+          <th>Ürünler</th><th>BD</th><th>Durum</th><th>Oluşturuldu</th><th></th>
+        </tr>
+      </thead>
+      <tbody id="randevu-tbody"></tbody>
+    </table>
+    <div class="empty-state hidden" id="empty-state">Henüz randevu yok.</div>
+  </div>
+</div>
+
+<!-- Ayarlar modalı -->
+<div class="modal-bg hidden" id="randevu-settings-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Randevu Ayarları</h2>
+      <button class="icon-btn" onclick="closeRandevuSettingsModal()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p>Randevu tamamlandıktan sonra müşteriye gösterilecek "Depozito Öde" butonunun gideceği İKAS Sepet Linki'ni buraya yapıştır (İKAS admin panelinde: Ürünler → Tanımlamalar → Sepet Linki, Depozito ürünü seçilerek oluşturulur).</p>
+      <div class="form-group" style="margin-top:10px">
+        <label>İKAS Depozito Sepet Linki</label>
+        <input type="url" id="ra-depozito-link" placeholder="https://...">
+      </div>
+      <div id="randevu-settings-result" style="margin-top:10px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn ghost" onclick="closeRandevuSettingsModal()">Kapat</button>
+      <button class="btn primary" id="randevu-settings-btn" onclick="saveRandevuSettings()">Kaydet</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var saved = localStorage.getItem('theme');
+  if (saved === 'light' || saved === 'dark') document.documentElement.setAttribute('data-theme', saved);
+  window.toggleTheme = function(){
+    var current = document.documentElement.getAttribute('data-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    var next = current === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateThemeIcon();
+  };
+  window.updateThemeIcon = function(){
+    var icon = document.getElementById('theme-icon');
+    if (!icon) return;
+    var current = document.documentElement.getAttribute('data-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    icon.innerHTML = current === 'dark'
+      ? '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>'
+      : '<path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>';
+  };
+  document.addEventListener('DOMContentLoaded', updateThemeIcon);
+})();
+</script>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getAuth, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getFirestore, collection, onSnapshot, doc, getDoc, setDoc, updateDoc, deleteDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+const app = initializeApp({
+  apiKey:"AIzaSyBED4SOH13mpdpuGLHwG_wl6lhe1a4YNos",
+  authDomain:"stok-19117.firebaseapp.com",
+  projectId:"stok-19117",
+  storageBucket:"stok-19117.firebasestorage.app",
+  messagingSenderId:"599549832875",
+  appId:"1:599549832875:web:4570ade50e2731469091ee"
+});
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+function setSyncStatus(s){ const b=document.getElementById('sync-badge'); b.className='sync-badge '+s; b.textContent=s==='online'?'● Canlı':s==='syncing'?'◌ Senkronize':'○ Çevrimdışı'; }
+function formatTarih(iso){ if(!iso) return '—'; const [y,m,d]=iso.split('-'); return `${d}.${m}.${y}`; }
+function formatZaman(ts){ if(!ts?.toDate) return '—'; const d=ts.toDate(); return d.toLocaleDateString('tr-TR')+' '+d.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}); }
+
+window.logout = () => signOut(auth);
+
+let randevular = [];
+let search = '';
+
+onAuthStateChanged(auth, user=>{
+  if(!user){ location.href = 'giris.html?redirect=yonetim.html'; return; }
+  document.getElementById('user-email').textContent = user.email || '';
+  onSnapshot(collection(db,'randevular'), snap=>{
+    randevular = snap.docs.map(d=>({id:d.id, ...d.data()}));
+    randevular.sort((a,b)=> (a.randevuTarihi||'').localeCompare(b.randevuTarihi||''));
+    render();
+    setSyncStatus('online');
+  }, ()=>setSyncStatus('offline'));
+});
+
+document.getElementById('search').addEventListener('input', e=>{
+  search = e.target.value.trim().toLowerCase();
+  render();
+});
+
+function render(){
+  const filtered = randevular.filter(r=>{
+    if(!search) return true;
+    return (r.musteriAdi||'').toLowerCase().includes(search) || (r.musteriTelefon||'').toLowerCase().includes(search);
+  });
+  const tbody = document.getElementById('randevu-tbody');
+  document.getElementById('empty-state').classList.toggle('hidden', filtered.length>0);
+  tbody.innerHTML = filtered.map(r=>{
+    const urunlerHtml = (r.urunler||[]).map(u=>`<span class="urun-chip">${esc(u.urunAdi)} — ${esc(u.beden)} ${esc(u.renk)}</span>`).join('');
+    return `<tr>
+      <td>${formatTarih(r.randevuTarihi)}</td>
+      <td><input type="time" class="inline-time" value="${esc(r.randevuSaati||'')}" data-id="${r.id}" onchange="updSaat('${r.id}',this.value)"></td>
+      <td>${esc(r.musteriAdi)}</td>
+      <td>${r.musteriTelefon ? `<a href="tel:${esc(r.musteriTelefon)}" style="color:var(--text)">${esc(r.musteriTelefon)}</a>` : '—'}</td>
+      <td>${esc(r.musteriEposta)||'—'}</td>
+      <td>${urunlerHtml}</td>
+      <td>${r.bdVarMi ? '<span class="badge badge-bd">BD</span>' : ''}</td>
+      <td>
+        <select class="inline-sel" onchange="updDurum('${r.id}',this.value)">
+          <option value="yeni"${r.durum==='yeni'?' selected':''}>Yeni</option>
+          <option value="onaylandi"${r.durum==='onaylandi'?' selected':''}>Onaylandı</option>
+          <option value="iptal"${r.durum==='iptal'?' selected':''}>İptal</option>
+        </select>
+      </td>
+      <td style="white-space:nowrap;color:var(--text-muted)">${formatZaman(r.olusturulmaTarihi)}</td>
+      <td><button class="icon-btn del" title="Sil" onclick="silRandevu('${r.id}')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+      </button></td>
+    </tr>`;
+  }).join('');
+}
+
+window.updSaat = async function(id, val){
+  await updateDoc(doc(db,'randevular',id), { randevuSaati: val || null, guncellemeTarihi: serverTimestamp() });
+};
+window.updDurum = async function(id, val){
+  await updateDoc(doc(db,'randevular',id), { durum: val, guncellemeTarihi: serverTimestamp() });
+};
+window.silRandevu = async function(id){
+  if(!confirm('Bu randevuyu silmek istediğine emin misin?')) return;
+  await deleteDoc(doc(db,'randevular',id));
+};
+
+// ── Ayarlar modalı ────────────────────────────────
+window.showRandevuSettingsModal = async function(){
+  const resultEl = document.getElementById('randevu-settings-result');
+  resultEl.innerHTML = '';
+  document.getElementById('ra-depozito-link').value = '';
+  document.getElementById('randevu-settings-modal').classList.remove('hidden');
+  try{
+    const snap = await getDoc(doc(db,'config','randevuAyarlari'));
+    if(snap.exists()){
+      document.getElementById('ra-depozito-link').value = snap.data().depozitoLinki || '';
+    }
+  }catch(err){
+    resultEl.innerHTML = `<div style="background:var(--danger-bg);color:var(--danger-text);border-radius:8px;padding:8px 10px">Mevcut ayarlar okunamadı: ${esc(err.message)}</div>`;
+  }
+};
+window.closeRandevuSettingsModal = () => document.getElementById('randevu-settings-modal').classList.add('hidden');
+
+window.saveRandevuSettings = async function(){
+  const btn = document.getElementById('randevu-settings-btn');
+  const resultEl = document.getElementById('randevu-settings-result');
+  const link = document.getElementById('ra-depozito-link').value.trim();
+  const eskiMetin = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Kaydediliyor...';
+  resultEl.innerHTML = '';
+  try{
+    await setDoc(doc(db,'config','randevuAyarlari'), { depozitoLinki: link, guncellendi: serverTimestamp() }, { merge:true });
+    resultEl.innerHTML = `<div style="background:var(--success-bg);color:var(--success-text);border-radius:8px;padding:8px 10px">Kaydedildi.</div>`;
+  }catch(err){
+    resultEl.innerHTML = `<div style="background:var(--danger-bg);color:var(--danger-text);border-radius:8px;padding:8px 10px">Kaydedilemedi: ${esc(err.message)}</div>`;
+  }finally{
+    btn.disabled = false; btn.textContent = eskiMetin;
+  }
+};
+</script>
+</body>
+</html>
