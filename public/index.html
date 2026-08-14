@@ -37,11 +37,16 @@ h2.section-title{font-size:14px;font-weight:700;margin:0 0 10px}
 
 .step-panel{display:flex;flex-direction:column;gap:4px}
 
-/* ── Arama ────────────────────────────────────────── */
-.search-wrap{position:relative;margin-bottom:14px}
+/* ── Arama / kategori filtresi ─────────────────────── */
+.search-wrap{position:relative;margin-bottom:10px}
 .search-wrap svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text-muted);width:16px;height:16px;pointer-events:none}
 .search-wrap input{width:100%;height:40px;padding:0 12px 0 34px;border:1px solid var(--input-border);border-radius:var(--radius);background:var(--surface);color:var(--text);font-size:14px;font-family:inherit}
 .search-wrap input:focus{outline:none;border-color:var(--input-border-focus)}
+
+.kategori-filtre{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.kategori-chip{height:30px;padding:0 13px;border:1px solid var(--border-strong);border-radius:20px;background:var(--surface);color:var(--text-sec);font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;white-space:nowrap}
+.kategori-chip:hover{background:var(--surface2)}
+.kategori-chip.active{background:var(--accent);color:#fff;border-color:transparent}
 
 /* ── Ürün seçimi ─────────────────────────────────── */
 .urun-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-bottom:16px}
@@ -150,6 +155,7 @@ h2.section-title{font-size:14px;font-weight:700;margin:0 0 10px}
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
         <input type="text" id="urun-arama" placeholder="Ürün adı veya SKU ara...">
       </div>
+      <div class="kategori-filtre hidden" id="kategori-filtre"></div>
       <div class="urun-grid" id="urun-grid"></div>
       <div id="urun-arama-bos" class="state-msg hidden" style="padding:20px 16px">Aramanızla eşleşen ürün bulunamadı.</div>
 
@@ -259,6 +265,7 @@ let step = 1;               // 1=ürünler, 2=tarih, 3=iletişim
 let calViewYear, calViewMonth;  // takvimde o an gösterilen ay (calViewMonth: 0-11)
 let selectedDateISO = '';
 let searchQuery = '';
+let aktifKategori = '';         // '' = Tümü
 let activeRenkByProduct = {};   // urunId -> o kartta o an gösterilen renk
 
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
@@ -281,6 +288,7 @@ onSnapshot(collection(db,'magaza_urunler'), snap=>{
     document.getElementById('empty-state').classList.add('hidden');
     document.getElementById('wizard').classList.remove('hidden');
   }
+  renderKategoriFiltre();
   renderUrunler();
 }, err=>{
   document.getElementById('loading-state').textContent = 'Ürünler yüklenemedi: ' + err.message;
@@ -318,9 +326,31 @@ function filterProducts(list, q){
   });
 }
 
+function renderKategoriFiltre(){
+  const wrap = document.getElementById('kategori-filtre');
+  const tumKategoriler = [...new Set(products.flatMap(p=>p.kategoriler||[]))].sort((a,b)=>a.localeCompare(b,'tr'));
+  if(tumKategoriler.length < 2){
+    wrap.classList.add('hidden'); wrap.innerHTML=''; aktifKategori='';
+    return;
+  }
+  wrap.classList.remove('hidden');
+  wrap.innerHTML = [
+    `<button type="button" class="kategori-chip${!aktifKategori?' active':''}" data-kategori="">Tümü</button>`,
+    ...tumKategoriler.map(k=>`<button type="button" class="kategori-chip${aktifKategori===k?' active':''}" data-kategori="${esc(k)}">${esc(k)}</button>`)
+  ].join('');
+  wrap.querySelectorAll('.kategori-chip').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      aktifKategori = btn.dataset.kategori;
+      renderKategoriFiltre();
+      renderUrunler();
+    });
+  });
+}
+
 function renderUrunler(){
   const grid = document.getElementById('urun-grid');
-  const gosterilecek = filterProducts(products, searchQuery);
+  let gosterilecek = aktifKategori ? products.filter(p=>(p.kategoriler||[]).includes(aktifKategori)) : products;
+  gosterilecek = filterProducts(gosterilecek, searchQuery);
   document.getElementById('urun-arama-bos').classList.toggle('hidden', gosterilecek.length>0 || !products.length);
 
   grid.innerHTML = gosterilecek.map(p=>{
