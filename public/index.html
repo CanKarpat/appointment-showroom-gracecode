@@ -53,6 +53,13 @@ h2.section-title{font-size:14px;font-weight:700;margin:0 0 10px}
 .kategori-chip{height:30px;padding:0 13px;border:1px solid var(--border-strong);border-radius:20px;background:var(--surface);color:var(--text-sec);font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;white-space:nowrap}
 .kategori-chip:hover{background:var(--accent-bg);color:var(--accent-text);border-color:transparent}
 
+.renk-beden-filtre{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.filtre-etiket{font-size:11px;font-weight:700;color:var(--text-muted);margin-right:2px}
+.renk-filtre-chip{display:inline-flex;align-items:center;gap:5px;height:28px;padding:0 11px;border:1px solid var(--border-strong);border-radius:16px;background:var(--surface);color:var(--text-sec);font-size:11px;font-weight:500;cursor:pointer;font-family:inherit;white-space:nowrap}
+.renk-filtre-chip:hover{background:var(--surface2)}
+.renk-filtre-chip.active{background:var(--accent);color:#fff;border-color:transparent}
+.renk-nokta{width:10px;height:10px;border-radius:50%;flex-shrink:0;box-shadow:0 0 0 1px rgba(0,0,0,.15)}
+
 /* ── Ürün seçimi ─────────────────────────────────── */
 .urun-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-bottom:16px}
 .urun-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px}
@@ -161,6 +168,8 @@ h2.section-title{font-size:14px;font-weight:700;margin:0 0 10px}
         <input type="text" id="urun-arama" placeholder="Ürün adı veya SKU ara...">
       </div>
       <div class="kategori-filtre hidden" id="kategori-filtre"></div>
+      <div class="renk-beden-filtre hidden" id="renk-filtre"></div>
+      <div class="renk-beden-filtre hidden" id="beden-filtre"></div>
       <div class="urun-grid" id="urun-grid"></div>
       <div id="urun-arama-bos" class="state-msg hidden" style="padding:20px 16px">Aramanızla eşleşen ürün bulunamadı.</div>
 
@@ -270,7 +279,10 @@ let step = 1;               // 1=ürünler, 2=tarih, 3=iletişim
 let calViewYear, calViewMonth;  // takvimde o an gösterilen ay (calViewMonth: 0-11)
 let selectedDateISO = '';
 let searchQuery = '';
+let kategoriAgaciListe = [];    // config/kategoriAgaci'deki TÜM kategoriler (o an yüklü ürünlerle sınırlı değil)
 let kategoriYolSecim = [];      // seçilen kategori yolu segmentleri, ör. ['Tüm Abiyeler','Abiye Elbise Modelleri']
+let aktifRenkFiltre = '';       // '' = tüm renkler
+let aktifBedenFiltre = '';      // '' = tüm bedenler
 let activeRenkByProduct = {};   // urunId -> o kartta o an gösterilen renk
 
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
@@ -294,6 +306,7 @@ onSnapshot(collection(db,'magaza_urunler'), snap=>{
     document.getElementById('wizard').classList.remove('hidden');
   }
   renderKategoriFiltre();
+  renderRenkBedenFiltre();
   renderUrunler();
 }, err=>{
   document.getElementById('loading-state').textContent = 'Ürünler yüklenemedi: ' + err.message;
@@ -302,6 +315,14 @@ onSnapshot(collection(db,'magaza_urunler'), snap=>{
 getDoc(doc(db,'config','randevuAyarlari')).then(snap=>{
   depozitoLinki = snap.exists() ? (snap.data().depozitoLinki || '') : '';
 }).catch(()=>{});
+
+// Kategori ağacının tamamı — sadece o an yüklü ürünlerin taşıdığı kategoriler değil, mağazadaki
+// TÜM kategoriler burada gösterilebilsin diye ayrı çekiliyor (magaza_urunler'deki ürün sayısı
+// azken bile müşteri tüm kategori yapısını görebilsin).
+onSnapshot(doc(db,'config','kategoriAgaci'), snap=>{
+  kategoriAgaciListe = snap.exists() ? (snap.data().liste||[]) : [];
+  renderKategoriFiltre();
+}, ()=>{});
 
 // ── Adım kontrolü ─────────────────────────────────
 function goToStep(n){
@@ -335,19 +356,64 @@ function filterProducts(list, q){
 // kategori ağacı yapısı). Düz bir chip listesi onlarca kategoride kullanılamaz hale geldiği
 // için Calendly'deki gibi kademeli (breadcrumb) bir gezinme kullanılıyor: her tıklama bir
 // seviye aşağı iner, breadcrumb'daki herhangi bir noktaya tıklamak oraya geri döner.
+// Seçenekler config/kategoriAgaci'nin TAMAMINDAN türetilir (products'tan değil) — böylece o an
+// hiç ürünü olmayan bir kategori bile listede görünür, mağazanın gerçek kategori yapısı eksiksiz yansır.
 function kategoriSonrakiSegmentler(){
   const prefix = kategoriYolSecim.join('>');
   const sonrakiSet = new Set();
-  products.forEach(p=>{
-    (p.kategoriler||[]).forEach(yol=>{
-      if(prefix && yol!==prefix && !yol.startsWith(prefix+'>')) return;
-      const kalan = prefix ? yol.slice(prefix.length+1) : yol;
-      if(!kalan) return; // yol tam olarak prefix'in kendisiyse (bu bir yaprak kategori), altında segment yok
-      const sonraki = kalan.split('>')[0];
-      if(sonraki) sonrakiSet.add(sonraki);
-    });
+  kategoriAgaciListe.forEach(k=>{
+    const yol = k.yol || '';
+    if(prefix && yol!==prefix && !yol.startsWith(prefix+'>')) return;
+    const kalan = prefix ? yol.slice(prefix.length+1) : yol;
+    if(!kalan) return; // yol tam olarak prefix'in kendisiyse (bu bir yaprak kategori), altında segment yok
+    const sonraki = kalan.split('>')[0];
+    if(sonraki) sonrakiSet.add(sonraki);
   });
   return [...sonrakiSet].sort((a,b)=>a.localeCompare(b,'tr'));
+}
+
+// ── Renk / beden filtresi (ürün kartındaki varyant seçiminden ayrı — sadece listeyi daraltır) ──
+function tumRenkler(){
+  return [...new Set(products.flatMap(p=>(p.varyantlar||[]).map(v=>v.renk)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'tr'));
+}
+function tumBedenler(){
+  return [...new Set(products.flatMap(p=>(p.varyantlar||[]).map(v=>v.beden)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'tr',{numeric:true}));
+}
+function urunRenkBedenUyuyorMu(p){
+  if(!aktifRenkFiltre && !aktifBedenFiltre) return true;
+  return (p.varyantlar||[]).some(v=>
+    (!aktifRenkFiltre || v.renk===aktifRenkFiltre) && (!aktifBedenFiltre || v.beden===aktifBedenFiltre)
+  );
+}
+function renderRenkBedenFiltre(){
+  const renkler = tumRenkler();
+  const bedenler = tumBedenler();
+
+  const renkWrap = document.getElementById('renk-filtre');
+  if(renkler.length < 2){ renkWrap.classList.add('hidden'); renkWrap.innerHTML=''; aktifRenkFiltre=''; }
+  else{
+    renkWrap.classList.remove('hidden');
+    renkWrap.innerHTML = '<span class="filtre-etiket">Renk</span>' + [
+      `<button type="button" class="renk-filtre-chip${!aktifRenkFiltre?' active':''}" data-renk="">Tümü</button>`,
+      ...renkler.map(r=>`<button type="button" class="renk-filtre-chip${aktifRenkFiltre===r?' active':''}" data-renk="${esc(r)}"><span class="renk-nokta" style="background:${CMAP[r]||'#bbb'}"></span>${esc(r)}</button>`)
+    ].join('');
+    renkWrap.querySelectorAll('.renk-filtre-chip').forEach(btn=>{
+      btn.addEventListener('click', ()=>{ aktifRenkFiltre = btn.dataset.renk; renderRenkBedenFiltre(); renderUrunler(); });
+    });
+  }
+
+  const bedenWrap = document.getElementById('beden-filtre');
+  if(bedenler.length < 2){ bedenWrap.classList.add('hidden'); bedenWrap.innerHTML=''; aktifBedenFiltre=''; }
+  else{
+    bedenWrap.classList.remove('hidden');
+    bedenWrap.innerHTML = '<span class="filtre-etiket">Beden</span>' + [
+      `<button type="button" class="renk-filtre-chip${!aktifBedenFiltre?' active':''}" data-beden="">Tümü</button>`,
+      ...bedenler.map(b=>`<button type="button" class="renk-filtre-chip${aktifBedenFiltre===b?' active':''}" data-beden="${esc(b)}">${esc(b)}</button>`)
+    ].join('');
+    bedenWrap.querySelectorAll('.renk-filtre-chip').forEach(btn=>{
+      btn.addEventListener('click', ()=>{ aktifBedenFiltre = btn.dataset.beden; renderRenkBedenFiltre(); renderUrunler(); });
+    });
+  }
 }
 
 function urunKategoriyeUyuyorMu(p){
@@ -358,8 +424,7 @@ function urunKategoriyeUyuyorMu(p){
 
 function renderKategoriFiltre(){
   const wrap = document.getElementById('kategori-filtre');
-  const tumYollar = products.flatMap(p=>p.kategoriler||[]);
-  if(!tumYollar.length){
+  if(!kategoriAgaciListe.length){
     wrap.classList.add('hidden'); wrap.innerHTML=''; kategoriYolSecim=[];
     return;
   }
@@ -396,7 +461,7 @@ function renderKategoriFiltre(){
 
 function renderUrunler(){
   const grid = document.getElementById('urun-grid');
-  let gosterilecek = products.filter(urunKategoriyeUyuyorMu);
+  let gosterilecek = products.filter(p=>urunKategoriyeUyuyorMu(p) && urunRenkBedenUyuyorMu(p));
   gosterilecek = filterProducts(gosterilecek, searchQuery);
   document.getElementById('urun-arama-bos').classList.toggle('hidden', gosterilecek.length>0 || !products.length);
 
