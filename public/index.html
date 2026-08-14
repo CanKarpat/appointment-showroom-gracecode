@@ -37,6 +37,12 @@ h2.section-title{font-size:14px;font-weight:700;margin:0 0 10px}
 
 .step-panel{display:flex;flex-direction:column;gap:4px}
 
+/* ── Arama ────────────────────────────────────────── */
+.search-wrap{position:relative;margin-bottom:14px}
+.search-wrap svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text-muted);width:16px;height:16px;pointer-events:none}
+.search-wrap input{width:100%;height:40px;padding:0 12px 0 34px;border:1px solid var(--input-border);border-radius:var(--radius);background:var(--surface);color:var(--text);font-size:14px;font-family:inherit}
+.search-wrap input:focus{outline:none;border-color:var(--input-border-focus)}
+
 /* ── Ürün seçimi ─────────────────────────────────── */
 .urun-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-bottom:16px}
 .urun-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px}
@@ -44,12 +50,18 @@ h2.section-title{font-size:14px;font-weight:700;margin:0 0 10px}
 .urun-card .urun-ad{font-size:13px;font-weight:600;margin-bottom:2px}
 .urun-card .urun-fiyat{font-size:12px;color:var(--text-sec);margin-bottom:9px}
 .urun-card .urun-fiyat .eski{text-decoration:line-through;color:var(--text-muted);margin-right:5px}
-.variant-chips{display:flex;flex-wrap:wrap;gap:6px}
-.variant-chip{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border:1px solid var(--border-strong);border-radius:20px;background:var(--surface);color:var(--text-sec);font-size:12px;font-weight:500;cursor:pointer;transition:all .12s;font-family:inherit}
-.variant-chip:hover{background:var(--surface2)}
-.variant-chip.selected{background:var(--accent);color:#fff;border-color:transparent}
+
+.renk-row{display:flex;align-items:center;gap:8px;margin-bottom:9px;flex-wrap:wrap}
+.renk-swatch{width:22px;height:22px;border-radius:50%;border:2px solid var(--surface);box-shadow:0 0 0 1px var(--border-strong);cursor:pointer;padding:0;flex-shrink:0}
+.renk-swatch.active{box-shadow:0 0 0 2px var(--accent)}
+.renk-adi{font-size:11px;color:var(--text-sec)}
+
+.beden-pills{display:flex;flex-wrap:wrap;gap:6px}
+.beden-pill{position:relative;min-width:38px;height:32px;padding:0 8px;border:1px solid var(--border-strong);border-radius:6px;background:var(--surface);color:var(--text);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}
+.beden-pill:hover{border-color:var(--accent)}
+.beden-pill.selected{background:var(--accent);color:#fff;border-color:transparent}
+.beden-pill .bd-dot{position:absolute;top:-5px;right:-5px;width:14px;height:14px;border-radius:50%;background:var(--warning-bg);color:var(--warning-text);font-size:7px;font-weight:800;display:flex;align-items:center;justify-content:center;border:1px solid var(--surface);line-height:1}
 .badge-bd{font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px;background:var(--warning-bg);color:var(--warning-text);white-space:nowrap}
-.variant-chip.selected .badge-bd{background:rgba(255,255,255,.25);color:#fff}
 
 .secim-list{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
 .secim-item{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:12px}
@@ -134,7 +146,12 @@ h2.section-title{font-size:14px;font-weight:700;margin:0 0 10px}
     <div class="step-panel" id="step-1">
       <h2 class="section-title">Ürün Seçimi</h2>
       <p class="hint">Randevu almak istediğiniz ürün(ler)i ve varyantlarını seçin, sonra devam edin.</p>
+      <div class="search-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        <input type="text" id="urun-arama" placeholder="Ürün adı veya SKU ara...">
+      </div>
       <div class="urun-grid" id="urun-grid"></div>
+      <div id="urun-arama-bos" class="state-msg hidden" style="padding:20px 16px">Aramanızla eşleşen ürün bulunamadı.</div>
 
       <div id="secim-section" class="hidden">
         <h2 class="section-title">Seçimleriniz</h2>
@@ -229,6 +246,11 @@ const app = initializeApp({
 const db = getFirestore(app);
 
 const AY_ADLARI = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
+// Stock-caka'nın admin panelindeki renk noktası paletiyle aynı (public/index.html içindeki CMAP) —
+// renk adı bilinmiyorsa nötr bir gri kullanılır.
+const CMAP = {Siyah:'#1a1a1a',Ekru:'#f5f0e0',Bordo:'#7b1e34',Lacivert:'#1a2a5e',Pudra:'#f2c4ce',
+  'Yeşil':'#4a7c59',Mor:'#5b3d8a','Kırmızı':'#c0392b','Altın':'#c9a84c','Gümüş':'#a8a9ad',
+  Mavi:'#2e6fb4',Bej:'#d4b896',Beyaz:'#f8f8f8',Pembe:'#f4a7b9',Kahverengi:'#7b5533',Vizon:'#b7a58f'};
 
 let products = [];        // magaza_urunler dokümanları
 let selected = [];         // seçilen varyantlar: {urunId,urunAdi,urunKodu,sku,renk,beden,gorselUrl,bd}
@@ -236,6 +258,8 @@ let depozitoLinki = '';
 let step = 1;               // 1=ürünler, 2=tarih, 3=iletişim
 let calViewYear, calViewMonth;  // takvimde o an gösterilen ay (calViewMonth: 0-11)
 let selectedDateISO = '';
+let searchQuery = '';
+let activeRenkByProduct = {};   // urunId -> o kartta o an gösterilen renk
 
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
 function fmt(n){ return Number(n||0).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
@@ -283,37 +307,75 @@ function goToStep(n){
 window.goToStep = goToStep;
 
 // ── Ürün / varyant seçimi (Adım 1) ────────────────
+function filterProducts(list, q){
+  if(!q) return list;
+  const needle = q.trim().toLowerCase();
+  if(!needle) return list;
+  return list.filter(p=>{
+    if((p.ad||'').toLowerCase().includes(needle)) return true;
+    if((p.kod||'').toLowerCase().includes(needle)) return true;
+    return (p.varyantlar||[]).some(v=>(v.sku||'').toLowerCase().includes(needle));
+  });
+}
+
 function renderUrunler(){
   const grid = document.getElementById('urun-grid');
-  grid.innerHTML = products.map(p=>{
+  const gosterilecek = filterProducts(products, searchQuery);
+  document.getElementById('urun-arama-bos').classList.toggle('hidden', gosterilecek.length>0 || !products.length);
+
+  grid.innerHTML = gosterilecek.map(p=>{
     const vars = p.varyantlar || [];
     const indirimli = Number(p.indirimliFiyat||0);
     const satis = Number(p.satisFiyati||0);
     const fiyatHtml = (indirimli > 0 && indirimli < satis)
       ? `<span class="eski">₺${fmt(satis)}</span>₺${fmt(indirimli)}`
       : `₺${fmt(satis)}`;
-    const gorsel = vars.find(v=>v.gorselUrl)?.gorselUrl || '';
+
+    // Renk gruplaması: ürünün varyantları arasındaki benzersiz renkler, sırayla ilk görülen kazanır.
+    const renkler = [...new Set(vars.map(v=>v.renk).filter(Boolean))];
+    const aktifRenk = activeRenkByProduct[p.id] && renkler.includes(activeRenkByProduct[p.id])
+      ? activeRenkByProduct[p.id] : (renkler[0] || '');
+    const aktifBedenler = renkler.length ? vars.filter(v=>v.renk===aktifRenk) : vars;
+    const gorsel = (aktifBedenler.find(v=>v.gorselUrl) || vars.find(v=>v.gorselUrl) || {}).gorselUrl || '';
+
+    const renkRowHtml = renkler.length>1 ? `<div class="renk-row">
+        ${renkler.map(r=>`<button type="button" class="renk-swatch${r===aktifRenk?' active':''}" data-uid="${esc(p.id)}" data-renk="${esc(r)}" style="background:${CMAP[r]||'#bbb'}" title="${esc(r)}"></button>`).join('')}
+        <span class="renk-adi">${esc(aktifRenk)}</span>
+      </div>` : (renkler.length===1 ? `<div class="renk-row"><span class="renk-adi">${esc(renkler[0])}</span></div>` : '');
+
     return `<div class="urun-card">
       ${gorsel ? `<img class="urun-gorsel" src="${esc(gorsel)}" alt="${esc(p.ad)}" loading="lazy">` : ''}
       <div class="urun-ad">${esc(p.ad)}</div>
       <div class="urun-fiyat">${fiyatHtml}</div>
-      <div class="variant-chips">
-        ${vars.map(v=>{
+      ${renkRowHtml}
+      <div class="beden-pills">
+        ${aktifBedenler.map(v=>{
           const key = selKey(p.id, v.sku);
           const secili = selected.some(s=>selKey(s.urunId,s.sku)===key);
-          return `<button type="button" class="variant-chip${secili?' selected':''}" data-uid="${esc(p.id)}" data-sku="${esc(v.sku)}">
-            ${esc(v.beden)} beden ${esc(v.renk)}
-            ${v.bd ? '<span class="badge-bd" title="Bu ürün Bursa depodan getirtilir, randevu en erken 3 gün sonra alınabilir">BD</span>' : ''}
+          return `<button type="button" class="beden-pill${secili?' selected':''}" data-uid="${esc(p.id)}" data-sku="${esc(v.sku)}">
+            ${esc(v.beden)}
+            ${v.bd ? '<span class="bd-dot" title="Bu ürün Bursa depodan getirtilir, randevu en erken 3 gün sonra alınabilir">BD</span>' : ''}
           </button>`;
         }).join('')}
       </div>
     </div>`;
   }).join('');
 
-  grid.querySelectorAll('.variant-chip').forEach(btn=>{
+  grid.querySelectorAll('.beden-pill').forEach(btn=>{
     btn.addEventListener('click', ()=> toggleVariant(btn.dataset.uid, btn.dataset.sku));
   });
+  grid.querySelectorAll('.renk-swatch').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      activeRenkByProduct[btn.dataset.uid] = btn.dataset.renk;
+      renderUrunler();
+    });
+  });
 }
+
+document.getElementById('urun-arama').addEventListener('input', e=>{
+  searchQuery = e.target.value;
+  renderUrunler();
+});
 
 function toggleVariant(urunId, sku){
   const p = products.find(x=>x.id===urunId); if(!p) return;
