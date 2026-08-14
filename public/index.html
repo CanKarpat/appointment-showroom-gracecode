@@ -104,17 +104,17 @@ h2.section-title{font-size:14px;font-weight:700;margin:0 0 10px}
 .ozet-card .degistir-btn:hover{text-decoration:underline}
 
 /* ── Calendly-benzeri takvim ──────────────────────── */
-.cal-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px}
-.cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
-.cal-header .cal-month-label{font-size:13px;font-weight:700}
-.cal-nav-btn{width:28px;height:28px;border:1px solid var(--border-strong);border-radius:7px;background:var(--surface);color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center}
+.cal-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px;margin-bottom:14px;width:100%;max-width:300px;margin-left:auto;margin-right:auto}
+.cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.cal-header .cal-month-label{font-size:12px;font-weight:700}
+.cal-nav-btn{width:24px;height:24px;border:1px solid var(--border-strong);border-radius:6px;background:var(--surface);color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center}
 .cal-nav-btn:hover{background:var(--surface2)}
 .cal-nav-btn:disabled{opacity:.35;cursor:default}
 .cal-nav-btn:disabled:hover{background:var(--surface)}
-.cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px}
-.cal-weekdays span{text-align:center;font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase}
-.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
-.cal-cell{aspect-ratio:1;border:none;border-radius:8px;background:transparent;font-size:12px;font-weight:500;color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit}
+.cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:2px}
+.cal-weekdays span{text-align:center;font-size:9px;font-weight:700;color:var(--text-muted);text-transform:uppercase}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.cal-cell{aspect-ratio:1;border:none;border-radius:6px;background:transparent;font-size:11px;font-weight:500;color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit}
 .cal-cell.empty{cursor:default}
 .cal-cell:not(.empty):not(.disabled):not(.selected):hover{background:var(--accent-bg);color:var(--accent-text)}
 .cal-cell.disabled{color:var(--text-muted);opacity:.35;cursor:default}
