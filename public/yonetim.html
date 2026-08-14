@@ -94,8 +94,12 @@ tr:last-child td{border-bottom:none}
 
 .form-group{display:flex;flex-direction:column;gap:5px}
 .form-group label{font-size:12px;font-weight:500;color:var(--text-sec)}
-.form-group input{padding:8px 10px;border:1px solid var(--input-border);border-radius:var(--radius);background:var(--surface2);color:var(--text);font-size:13px;font-family:inherit}
-.form-group input:focus{outline:none;border-color:var(--input-border-focus)}
+.form-group input,.form-group select{padding:8px 10px;border:1px solid var(--input-border);border-radius:var(--radius);background:var(--surface2);color:var(--text);font-size:13px;font-family:inherit}
+.form-group input:focus,.form-group select:focus{outline:none;border-color:var(--input-border-focus)}
+
+.mini-chip{display:inline-flex;align-items:center;gap:5px;background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:3px 8px 3px 10px;font-size:11px}
+.mini-chip button{border:none;background:none;color:var(--text-muted);cursor:pointer;font-size:14px;line-height:1;padding:0}
+.mini-chip button:hover{color:var(--danger-text)}
 </style>
 </head>
 <body>
@@ -150,6 +154,35 @@ tr:last-child td{border-bottom:none}
         <label>İKAS Depozito Sepet Linki</label>
         <input type="url" id="ra-depozito-link" placeholder="https://...">
       </div>
+
+      <div class="form-group" style="margin-top:16px">
+        <label>Çalışma Saatleri</label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="time" id="ra-calisma-baslangic" style="flex:1">
+          <span>—</span>
+          <input type="time" id="ra-calisma-bitis" style="flex:1">
+        </div>
+      </div>
+      <div class="form-group" style="margin-top:10px">
+        <label>Randevu Aralığı</label>
+        <select id="ra-slot-dakika">
+          <option value="30">30 dakika</option>
+          <option value="45">45 dakika</option>
+          <option value="60">60 dakika</option>
+          <option value="90">90 dakika</option>
+        </select>
+      </div>
+
+      <div class="form-group" style="margin-top:16px">
+        <label>Kapalı Tarihler</label>
+        <p style="font-size:11px;color:var(--text-muted);margin:0 0 6px">Belirli bir günü randevuya kapatmak için tarihi seçip "Kapat"a basın — istediğiniz zaman tekrar açabilirsiniz. Değişiklik ancak "Kaydet"e basınca uygulanır.</p>
+        <div style="display:flex;gap:8px">
+          <input type="date" id="ra-kapali-tarih-input" style="flex:1">
+          <button type="button" class="btn ghost" onclick="kapaliTarihEkle()">Kapat</button>
+        </div>
+        <div id="ra-kapali-tarihler-list" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px"></div>
+      </div>
+
       <div id="randevu-settings-result" style="margin-top:10px"></div>
     </div>
     <div class="modal-footer">
@@ -257,26 +290,78 @@ function render(){
 }
 
 window.updSaat = async function(id, val){
+  const eski = randevular.find(r=>r.id===id);
   await updateDoc(doc(db,'randevular',id), { randevuSaati: val || null, guncellemeTarihi: serverTimestamp() });
+  // dolu_saatler'i de senkron tut — eski saat serbest kalsın, yeni saat işgal edilsin (müşteri
+  // sitesindeki müsaitlik hesabı buna bakıyor).
+  if(eski?.randevuTarihi && eski?.randevuSaati){
+    await deleteDoc(doc(db,'dolu_saatler', `${eski.randevuTarihi}_${eski.randevuSaati}`)).catch(()=>{});
+  }
+  if(eski?.randevuTarihi && val){
+    await setDoc(doc(db,'dolu_saatler', `${eski.randevuTarihi}_${val}`), { tarih: eski.randevuTarihi, saat: val, olusturulmaTarihi: serverTimestamp() }).catch(()=>{});
+  }
 };
 window.updDurum = async function(id, val){
   await updateDoc(doc(db,'randevular',id), { durum: val, guncellemeTarihi: serverTimestamp() });
 };
 window.silRandevu = async function(id){
   if(!confirm('Bu randevuyu silmek istediğine emin misin?')) return;
+  const r = randevular.find(x=>x.id===id);
   await deleteDoc(doc(db,'randevular',id));
+  if(r?.randevuTarihi && r?.randevuSaati){
+    await deleteDoc(doc(db,'dolu_saatler', `${r.randevuTarihi}_${r.randevuSaati}`)).catch(()=>{});
+  }
 };
 
 // ── Ayarlar modalı ────────────────────────────────
+let kapaliTarihlerDraft = [];
+
+function formatTarihKisa(iso){ const [y,m,d]=iso.split('-'); return `${d}.${m}.${y}`; }
+
+function renderKapaliTarihlerListesi(){
+  const wrap = document.getElementById('ra-kapali-tarihler-list');
+  if(!kapaliTarihlerDraft.length){
+    wrap.innerHTML = '<span style="font-size:11px;color:var(--text-muted)">Kapalı tarih yok — mağaza her gün açık kabul edilir.</span>';
+    return;
+  }
+  wrap.innerHTML = kapaliTarihlerDraft.map(t=>`<span class="mini-chip">${formatTarihKisa(t)}<button type="button" onclick="kapaliTarihSil('${t}')" title="Aç">×</button></span>`).join('');
+}
+window.kapaliTarihEkle = function(){
+  const input = document.getElementById('ra-kapali-tarih-input');
+  const val = input.value;
+  if(!val) return;
+  if(!kapaliTarihlerDraft.includes(val)){
+    kapaliTarihlerDraft.push(val);
+    kapaliTarihlerDraft.sort();
+  }
+  input.value = '';
+  renderKapaliTarihlerListesi();
+};
+window.kapaliTarihSil = function(tarih){
+  kapaliTarihlerDraft = kapaliTarihlerDraft.filter(t=>t!==tarih);
+  renderKapaliTarihlerListesi();
+};
+
 window.showRandevuSettingsModal = async function(){
   const resultEl = document.getElementById('randevu-settings-result');
   resultEl.innerHTML = '';
   document.getElementById('ra-depozito-link').value = '';
+  document.getElementById('ra-calisma-baslangic').value = '10:00';
+  document.getElementById('ra-calisma-bitis').value = '19:00';
+  document.getElementById('ra-slot-dakika').value = '60';
+  kapaliTarihlerDraft = [];
+  renderKapaliTarihlerListesi();
   document.getElementById('randevu-settings-modal').classList.remove('hidden');
   try{
     const snap = await getDoc(doc(db,'config','randevuAyarlari'));
     if(snap.exists()){
-      document.getElementById('ra-depozito-link').value = snap.data().depozitoLinki || '';
+      const d = snap.data();
+      document.getElementById('ra-depozito-link').value = d.depozitoLinki || '';
+      document.getElementById('ra-calisma-baslangic').value = d.calismaBaslangic || '10:00';
+      document.getElementById('ra-calisma-bitis').value = d.calismaBitis || '19:00';
+      document.getElementById('ra-slot-dakika').value = String(d.slotDakika || 60);
+      kapaliTarihlerDraft = (d.kapaliTarihler || []).slice().sort();
+      renderKapaliTarihlerListesi();
     }
   }catch(err){
     resultEl.innerHTML = `<div style="background:var(--danger-bg);color:var(--danger-text);border-radius:8px;padding:8px 10px">Mevcut ayarlar okunamadı: ${esc(err.message)}</div>`;
@@ -288,11 +373,19 @@ window.saveRandevuSettings = async function(){
   const btn = document.getElementById('randevu-settings-btn');
   const resultEl = document.getElementById('randevu-settings-result');
   const link = document.getElementById('ra-depozito-link').value.trim();
+  const calismaBaslangic = document.getElementById('ra-calisma-baslangic').value || '10:00';
+  const calismaBitis = document.getElementById('ra-calisma-bitis').value || '19:00';
+  const slotDakika = Number(document.getElementById('ra-slot-dakika').value) || 60;
   const eskiMetin = btn.textContent;
   btn.disabled = true; btn.textContent = 'Kaydediliyor...';
   resultEl.innerHTML = '';
   try{
-    await setDoc(doc(db,'config','randevuAyarlari'), { depozitoLinki: link, guncellendi: serverTimestamp() }, { merge:true });
+    await setDoc(doc(db,'config','randevuAyarlari'), {
+      depozitoLinki: link,
+      calismaBaslangic, calismaBitis, slotDakika,
+      kapaliTarihler: kapaliTarihlerDraft,
+      guncellendi: serverTimestamp(),
+    }, { merge:true });
     resultEl.innerHTML = `<div style="background:var(--success-bg);color:var(--success-text);border-radius:8px;padding:8px 10px">Kaydedildi.</div>`;
   }catch(err){
     resultEl.innerHTML = `<div style="background:var(--danger-bg);color:var(--danger-text);border-radius:8px;padding:8px 10px">Kaydedilemedi: ${esc(err.message)}</div>`;

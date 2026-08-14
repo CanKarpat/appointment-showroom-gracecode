@@ -123,6 +123,12 @@ h2.section-title{font-size:14px;font-weight:700;margin:0 0 10px}
 .cal-seciliTarih{font-size:12px;color:var(--text-sec);margin-bottom:14px;padding:9px 12px;background:var(--accent-bg);color:var(--accent-text);border-radius:8px;display:none}
 .cal-seciliTarih.show{display:block}
 
+.saat-pills{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px}
+.saat-pill{height:36px;padding:0 14px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
+.saat-pill:hover{border-color:var(--accent)}
+.saat-pill.selected{background:var(--accent);color:#fff;border-color:transparent}
+.saat-pill.dolu{color:var(--text-muted);background:var(--surface2);border-color:var(--border);cursor:default;opacity:.55;text-decoration:line-through}
+
 .form-group{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
 .form-group label{font-size:12px;font-weight:500;color:var(--text-sec)}
 .form-group input{height:38px;padding:0 12px;border:1px solid var(--input-border);border-radius:var(--radius);background:var(--surface2);color:var(--text);font-size:14px;font-family:inherit}
@@ -190,9 +196,10 @@ h2.section-title{font-size:14px;font-weight:700;margin:0 0 10px}
     <div class="step-panel hidden" id="step-2">
       <div class="ozet-card" id="ozet-urunler"></div>
 
-      <h2 class="section-title">Randevu Tarihi</h2>
-      <p class="hint">Uygun bir tarih seçin.</p>
+      <h2 class="section-title">Randevu Tarihi ve Saati</h2>
+      <p class="hint">Uygun bir tarih, ardından boş bir saat seçin.</p>
       <div id="bd-info" class="warn-box hidden"></div>
+      <div id="saat-hata" class="warn-box hidden" style="background:var(--danger-bg);color:var(--danger-text)"></div>
 
       <div class="cal-box">
         <div class="cal-header">
@@ -206,6 +213,13 @@ h2.section-title{font-size:14px;font-weight:700;margin:0 0 10px}
         </div>
         <div class="cal-weekdays"><span>Pzt</span><span>Sal</span><span>Çar</span><span>Per</span><span>Cum</span><span>Cmt</span><span>Paz</span></div>
         <div class="cal-grid" id="cal-grid"></div>
+      </div>
+
+      <div id="saat-secim-section" class="hidden">
+        <h2 class="section-title">Saat</h2>
+        <div id="saat-yukleniyor" class="state-msg hidden" style="padding:14px">Müsait saatler kontrol ediliyor...</div>
+        <div class="saat-pills" id="saat-pills"></div>
+        <div id="saat-bos-mesaj" class="warn-box hidden">Bu tarihte müsait saat kalmadı, lütfen başka bir tarih seçin.</div>
       </div>
       <div class="cal-seciliTarih" id="cal-secili-tarih"></div>
 
@@ -258,7 +272,7 @@ h2.section-title{font-size:14px;font-weight:700;margin:0 0 10px}
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, collection, onSnapshot, doc, getDoc, addDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getFirestore, collection, onSnapshot, doc, getDoc, getDocs, query, where, addDoc, writeBatch, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
 const app = initializeApp({
   apiKey:"AIzaSyBED4SOH13mpdpuGLHwG_wl6lhe1a4YNos",
@@ -283,6 +297,9 @@ let depozitoLinki = '';
 let step = 1;               // 1=ürünler, 2=tarih, 3=iletişim
 let calViewYear, calViewMonth;  // takvimde o an gösterilen ay (calViewMonth: 0-11)
 let selectedDateISO = '';
+let selectedSaat = '';
+let ayarlar = { calismaBaslangic:'10:00', calismaBitis:'19:00', slotDakika:60, kapaliTarihler:[] };
+let doluSaatlerBuGun = [];      // seçilen tarih için dolu_saatler'den gelen dolu saatler
 let searchQuery = '';
 let kategoriAgaciListe = [];    // config/kategoriAgaci'deki TÜM kategoriler (o an yüklü ürünlerle sınırlı değil)
 let kategoriYolSecim = [];      // seçilen kategori yolu segmentleri, ör. ['Tüm Abiyeler','Abiye Elbise Modelleri']
@@ -319,7 +336,14 @@ onSnapshot(collection(db,'magaza_urunler'), snap=>{
 });
 
 getDoc(doc(db,'config','randevuAyarlari')).then(snap=>{
-  depozitoLinki = snap.exists() ? (snap.data().depozitoLinki || '') : '';
+  const d = snap.exists() ? snap.data() : {};
+  depozitoLinki = d.depozitoLinki || '';
+  ayarlar = {
+    calismaBaslangic: d.calismaBaslangic || '10:00',
+    calismaBitis: d.calismaBitis || '19:00',
+    slotDakika: Number(d.slotDakika) || 60,
+    kapaliTarihler: d.kapaliTarihler || [],
+  };
 }).catch(()=>{});
 
 // Kategori ağacının tamamı — sadece o an yüklü ürünlerin taşıdığı kategoriler değil, mağazadaki
@@ -596,8 +620,11 @@ window.confirmUrunler = function(){
   if(!selected.length) return;
   // Ürün seçimi her onaylandığında tarih sıfırlanır — BD durumu (dolayısıyla min tarih) değişmiş olabilir.
   selectedDateISO = '';
+  selectedSaat = '';
   document.getElementById('step2-continue').disabled = true;
   document.getElementById('cal-secili-tarih').classList.remove('show');
+  document.getElementById('saat-secim-section').classList.add('hidden');
+  document.getElementById('saat-hata').classList.add('hidden');
 
   document.getElementById('ozet-urunler').innerHTML = `
     <div class="ozet-row">
@@ -632,7 +659,7 @@ function renderCalendar(){
   for(let i=0;i<startWeekday;i++) cells += `<div class="cal-cell empty"></div>`;
   for(let d=1; d<=daysInMonth; d++){
     const iso = `${calViewYear}-${String(calViewMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const disabled = iso < minISO;
+    const disabled = iso < minISO || ayarlar.kapaliTarihler.includes(iso);
     const sel = iso === selectedDateISO;
     cells += `<button type="button" class="cal-cell${disabled?' disabled':''}${sel?' selected':''}" ${disabled?'disabled':''} data-date="${iso}">${d}</button>`;
   }
@@ -656,20 +683,86 @@ window.navCalendar = function(delta){
   renderCalendar();
 };
 
-function selectCalendarDay(iso){
+function slotListesi(){
+  const [bh,bm] = ayarlar.calismaBaslangic.split(':').map(Number);
+  const [eh,em] = ayarlar.calismaBitis.split(':').map(Number);
+  const baslangicDk = bh*60+bm, bitisDk = eh*60+em;
+  const slots = [];
+  for(let dk=baslangicDk; dk<bitisDk; dk+=ayarlar.slotDakika){
+    slots.push(`${String(Math.floor(dk/60)).padStart(2,'0')}:${String(dk%60).padStart(2,'0')}`);
+  }
+  return slots;
+}
+
+async function selectCalendarDay(iso){
   selectedDateISO = iso;
+  selectedSaat = '';
+  document.getElementById('saat-hata').classList.add('hidden');
   renderCalendar();
   const box = document.getElementById('cal-secili-tarih');
   box.textContent = 'Seçilen tarih: ' + formatTR(iso);
   box.classList.add('show');
-  document.getElementById('step2-continue').disabled = false;
+  document.getElementById('step2-continue').disabled = true;
+
+  const section = document.getElementById('saat-secim-section');
+  const pillsEl = document.getElementById('saat-pills');
+  const yukleniyorEl = document.getElementById('saat-yukleniyor');
+  const bosEl = document.getElementById('saat-bos-mesaj');
+  section.classList.remove('hidden');
+  pillsEl.innerHTML = '';
+  bosEl.classList.add('hidden');
+  yukleniyorEl.classList.remove('hidden');
+
+  try{
+    const snap = await getDocs(query(collection(db,'dolu_saatler'), where('tarih','==', iso)));
+    doluSaatlerBuGun = snap.docs.map(d=>d.data().saat);
+  }catch(err){
+    doluSaatlerBuGun = [];
+  }
+  yukleniyorEl.classList.add('hidden');
+  renderSaatSecimi();
+}
+
+function renderSaatSecimi(){
+  const pillsEl = document.getElementById('saat-pills');
+  const bosEl = document.getElementById('saat-bos-mesaj');
+  let slots = slotListesi();
+  // Bugün seçildiyse geçmiş saatleri (şu ana kadar olanları) listeden çıkar.
+  if(selectedDateISO === todayISO()){
+    const simdi = new Date();
+    const simdiDk = simdi.getHours()*60 + simdi.getMinutes();
+    slots = slots.filter(s=>{
+      const [h,m] = s.split(':').map(Number);
+      return h*60+m > simdiDk;
+    });
+  }
+  const musaitSlots = slots.filter(s=>!doluSaatlerBuGun.includes(s));
+
+  if(!slots.length || !musaitSlots.length){
+    pillsEl.innerHTML = '';
+    bosEl.classList.remove('hidden');
+    return;
+  }
+  bosEl.classList.add('hidden');
+  pillsEl.innerHTML = slots.map(s=>{
+    const dolu = doluSaatlerBuGun.includes(s);
+    if(dolu) return `<button type="button" class="saat-pill dolu" disabled>${s}</button>`;
+    return `<button type="button" class="saat-pill${s===selectedSaat?' selected':''}" data-saat="${s}">${s}</button>`;
+  }).join('');
+  pillsEl.querySelectorAll('.saat-pill:not(.dolu)').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      selectedSaat = btn.dataset.saat;
+      renderSaatSecimi();
+      document.getElementById('step2-continue').disabled = false;
+    });
+  });
 }
 
 window.confirmTarih = function(){
-  if(!selectedDateISO) return;
+  if(!selectedDateISO || !selectedSaat) return;
   document.getElementById('ozet-tarih-urun').innerHTML = `
     <div class="ozet-row">
-      <div class="ozet-metin"><b>Tarih:</b> ${formatTR(selectedDateISO)}</div>
+      <div class="ozet-metin"><b>Tarih:</b> ${formatTR(selectedDateISO)} — <b>Saat:</b> ${esc(selectedSaat)}</div>
       <button type="button" class="degistir-btn" onclick="goToStep(2)">Değiştir</button>
     </div>
     <div class="ozet-row">
@@ -693,6 +786,7 @@ function validateForm(){
   if(!selected.length) return 'Lütfen en az bir ürün/varyant seçin.';
   if(!selectedDateISO) return 'Lütfen randevu tarihi seçin.';
   if(selectedDateISO < getMinDateISO()) return 'Seçtiğiniz tarih artık geçerli değil, lütfen tekrar seçin.';
+  if(!selectedSaat) return 'Lütfen randevu saati seçin.';
   if(!document.getElementById('musteri-adi').value.trim()) return 'Lütfen adınızı girin.';
   if(!document.getElementById('musteri-telefon').value.trim()) return 'Lütfen telefon numaranızı girin.';
   if(!document.getElementById('musteri-eposta').value.trim()) return 'Lütfen e-posta adresinizi girin.';
@@ -716,18 +810,42 @@ document.getElementById('randevu-form').addEventListener('submit', async (e)=>{
     urunler: selected.map(s=>({...s})),
     bdVarMi,
     randevuTarihi: selectedDateISO,
-    randevuSaati: null,
+    randevuSaati: selectedSaat,
     durum: 'yeni',
     olusturulmaTarihi: serverTimestamp(),
     guncellemeTarihi: serverTimestamp(),
   };
 
   try{
-    await addDoc(collection(db,'randevular'), veri);
+    // dolu_saatler dokümanı + randevu dokümanı TEK batch'te, atomik yazılıyor — slot doluysa
+    // (aynı id'li dolu_saatler dokümanı zaten varsa) Firestore bu yazmayı "create" değil "update"
+    // sayar, kurallar müşteriye update izni vermediği için TÜM batch reddedilir; randevu da hiç
+    // oluşmaz. Böylece iki müşteri aynı saati aynı anda seçse bile sadece biri kazanır.
+    const batch = writeBatch(db);
+    const slotRef = doc(db, 'dolu_saatler', `${selectedDateISO}_${selectedSaat}`);
+    batch.set(slotRef, { tarih: selectedDateISO, saat: selectedSaat, olusturulmaTarihi: serverTimestamp() });
+    const randevuRef = doc(collection(db,'randevular'));
+    batch.set(randevuRef, veri);
+    await batch.commit();
     renderSonuc(veri);
   }catch(err){
-    showFormError('Randevu kaydedilemedi, lütfen tekrar deneyin.');
-    btn.disabled = false; btn.textContent = 'Randevu Oluştur';
+    if(err.code === 'permission-denied'){
+      btn.disabled = false; btn.textContent = 'Randevu Oluştur';
+      selectedSaat = '';
+      document.getElementById('step2-continue').disabled = true;
+      goToStep(2);
+      const hataEl = document.getElementById('saat-hata');
+      hataEl.textContent = 'Bu saat az önce başka bir müşteri tarafından alındı, lütfen başka bir saat seçin.';
+      hataEl.classList.remove('hidden');
+      try{
+        const snap = await getDocs(query(collection(db,'dolu_saatler'), where('tarih','==', selectedDateISO)));
+        doluSaatlerBuGun = snap.docs.map(d=>d.data().saat);
+      }catch(_){}
+      renderSaatSecimi();
+    } else {
+      showFormError('Randevu kaydedilemedi, lütfen tekrar deneyin.');
+      btn.disabled = false; btn.textContent = 'Randevu Oluştur';
+    }
   }
 });
 
@@ -735,7 +853,7 @@ function renderSonuc(veri){
   document.getElementById('wizard').classList.add('hidden');
   document.getElementById('sonuc-view').classList.remove('hidden');
   document.getElementById('sonuc-ozet').innerHTML = `
-    <div><b>Tarih:</b> ${formatTR(veri.randevuTarihi)}</div>
+    <div><b>Tarih:</b> ${formatTR(veri.randevuTarihi)} — <b>Saat:</b> ${esc(veri.randevuSaati)}</div>
     <div><b>Ürünler:</b> ${veri.urunler.map(u=>esc(u.urunAdi+' — '+u.beden+' beden '+u.renk)).join(', ')}</div>
     <div><b>Ad Soyad:</b> ${esc(veri.musteriAdi)}</div>
   `;
