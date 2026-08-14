@@ -43,10 +43,15 @@ h2.section-title{font-size:14px;font-weight:700;margin:0 0 10px}
 .search-wrap input{width:100%;height:40px;padding:0 12px 0 34px;border:1px solid var(--input-border);border-radius:var(--radius);background:var(--surface);color:var(--text);font-size:14px;font-family:inherit}
 .search-wrap input:focus{outline:none;border-color:var(--input-border-focus)}
 
-.kategori-filtre{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.kategori-filtre{margin-bottom:14px}
+.kategori-breadcrumb{display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-bottom:8px}
+.breadcrumb-item{border:none;background:none;color:var(--text-sec);font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;padding:2px 3px;border-radius:4px}
+.breadcrumb-item:hover{background:var(--surface2)}
+.breadcrumb-item.active{color:var(--accent);font-weight:700}
+.breadcrumb-sep{color:var(--text-muted);font-size:11px}
+.kategori-chips{display:flex;flex-wrap:wrap;gap:6px}
 .kategori-chip{height:30px;padding:0 13px;border:1px solid var(--border-strong);border-radius:20px;background:var(--surface);color:var(--text-sec);font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;white-space:nowrap}
-.kategori-chip:hover{background:var(--surface2)}
-.kategori-chip.active{background:var(--accent);color:#fff;border-color:transparent}
+.kategori-chip:hover{background:var(--accent-bg);color:var(--accent-text);border-color:transparent}
 
 /* ── Ürün seçimi ─────────────────────────────────── */
 .urun-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-bottom:16px}
@@ -265,7 +270,7 @@ let step = 1;               // 1=ürünler, 2=tarih, 3=iletişim
 let calViewYear, calViewMonth;  // takvimde o an gösterilen ay (calViewMonth: 0-11)
 let selectedDateISO = '';
 let searchQuery = '';
-let aktifKategori = '';         // '' = Tümü
+let kategoriYolSecim = [];      // seçilen kategori yolu segmentleri, ör. ['Tüm Abiyeler','Abiye Elbise Modelleri']
 let activeRenkByProduct = {};   // urunId -> o kartta o an gösterilen renk
 
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
@@ -326,21 +331,63 @@ function filterProducts(list, q){
   });
 }
 
+// Kategoriler Stock-caka'dan "Üst>Alt>Yaprak" tam yol string'i olarak gelir (İKAS'ın kendi
+// kategori ağacı yapısı). Düz bir chip listesi onlarca kategoride kullanılamaz hale geldiği
+// için Calendly'deki gibi kademeli (breadcrumb) bir gezinme kullanılıyor: her tıklama bir
+// seviye aşağı iner, breadcrumb'daki herhangi bir noktaya tıklamak oraya geri döner.
+function kategoriSonrakiSegmentler(){
+  const prefix = kategoriYolSecim.join('>');
+  const sonrakiSet = new Set();
+  products.forEach(p=>{
+    (p.kategoriler||[]).forEach(yol=>{
+      if(prefix && yol!==prefix && !yol.startsWith(prefix+'>')) return;
+      const kalan = prefix ? yol.slice(prefix.length+1) : yol;
+      if(!kalan) return; // yol tam olarak prefix'in kendisiyse (bu bir yaprak kategori), altında segment yok
+      const sonraki = kalan.split('>')[0];
+      if(sonraki) sonrakiSet.add(sonraki);
+    });
+  });
+  return [...sonrakiSet].sort((a,b)=>a.localeCompare(b,'tr'));
+}
+
+function urunKategoriyeUyuyorMu(p){
+  if(!kategoriYolSecim.length) return true;
+  const prefix = kategoriYolSecim.join('>');
+  return (p.kategoriler||[]).some(yol => yol===prefix || yol.startsWith(prefix+'>'));
+}
+
 function renderKategoriFiltre(){
   const wrap = document.getElementById('kategori-filtre');
-  const tumKategoriler = [...new Set(products.flatMap(p=>p.kategoriler||[]))].sort((a,b)=>a.localeCompare(b,'tr'));
-  if(tumKategoriler.length < 2){
-    wrap.classList.add('hidden'); wrap.innerHTML=''; aktifKategori='';
+  const tumYollar = products.flatMap(p=>p.kategoriler||[]);
+  if(!tumYollar.length){
+    wrap.classList.add('hidden'); wrap.innerHTML=''; kategoriYolSecim=[];
     return;
   }
   wrap.classList.remove('hidden');
-  wrap.innerHTML = [
-    `<button type="button" class="kategori-chip${!aktifKategori?' active':''}" data-kategori="">Tümü</button>`,
-    ...tumKategoriler.map(k=>`<button type="button" class="kategori-chip${aktifKategori===k?' active':''}" data-kategori="${esc(k)}">${esc(k)}</button>`)
-  ].join('');
+
+  const sonrakiler = kategoriSonrakiSegmentler();
+  let html = '<div class="kategori-breadcrumb">';
+  html += `<button type="button" class="breadcrumb-item${!kategoriYolSecim.length?' active':''}" data-idx="-1">Tümü</button>`;
+  kategoriYolSecim.forEach((seg,i)=>{
+    html += `<span class="breadcrumb-sep">›</span><button type="button" class="breadcrumb-item${i===kategoriYolSecim.length-1?' active':''}" data-idx="${i}">${esc(seg)}</button>`;
+  });
+  html += '</div>';
+  if(sonrakiler.length){
+    html += '<div class="kategori-chips">' + sonrakiler.map(s=>`<button type="button" class="kategori-chip" data-seg="${esc(s)}">${esc(s)}</button>`).join('') + '</div>';
+  }
+  wrap.innerHTML = html;
+
+  wrap.querySelectorAll('.breadcrumb-item').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const idx = Number(btn.dataset.idx);
+      kategoriYolSecim = idx<0 ? [] : kategoriYolSecim.slice(0, idx+1);
+      renderKategoriFiltre();
+      renderUrunler();
+    });
+  });
   wrap.querySelectorAll('.kategori-chip').forEach(btn=>{
     btn.addEventListener('click', ()=>{
-      aktifKategori = btn.dataset.kategori;
+      kategoriYolSecim.push(btn.dataset.seg);
       renderKategoriFiltre();
       renderUrunler();
     });
@@ -349,7 +396,7 @@ function renderKategoriFiltre(){
 
 function renderUrunler(){
   const grid = document.getElementById('urun-grid');
-  let gosterilecek = aktifKategori ? products.filter(p=>(p.kategoriler||[]).includes(aktifKategori)) : products;
+  let gosterilecek = products.filter(urunKategoriyeUyuyorMu);
   gosterilecek = filterProducts(gosterilecek, searchQuery);
   document.getElementById('urun-arama-bos').classList.toggle('hidden', gosterilecek.length>0 || !products.length);
 
