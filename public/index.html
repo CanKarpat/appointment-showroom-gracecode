@@ -63,7 +63,12 @@ h2.section-title{font-size:14px;font-weight:700;margin:0 0 10px}
 /* ── Ürün seçimi ─────────────────────────────────── */
 .urun-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-bottom:16px}
 .urun-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px}
-.urun-card .urun-gorsel{width:100%;aspect-ratio:3/4;border-radius:8px;background:var(--surface2);object-fit:cover;margin-bottom:8px;display:block}
+.urun-gorsel-wrap{position:relative;margin-bottom:8px}
+.urun-card .urun-gorsel{width:100%;aspect-ratio:3/4;border-radius:8px;background:var(--surface2);object-fit:cover;display:block}
+.gorsel-taraf-secim{position:absolute;left:6px;bottom:6px;display:flex;gap:5px}
+.taraf-thumb{width:36px;height:36px;border-radius:6px;overflow:hidden;border:2px solid rgba(255,255,255,.85);box-shadow:0 1px 4px rgba(0,0,0,.25);cursor:pointer;padding:0;background:var(--surface2)}
+.taraf-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.taraf-thumb.active{border-color:var(--accent)}
 .urun-card .urun-ad{font-size:13px;font-weight:600;margin-bottom:2px}
 .urun-card .urun-fiyat{font-size:12px;color:var(--text-sec);margin-bottom:9px}
 .urun-card .urun-fiyat .eski{text-decoration:line-through;color:var(--text-muted);margin-right:5px}
@@ -284,6 +289,7 @@ let kategoriYolSecim = [];      // seçilen kategori yolu segmentleri, ör. ['T�
 let aktifRenkFiltre = '';       // '' = tüm renkler
 let aktifBedenFiltre = '';      // '' = tüm bedenler
 let activeRenkByProduct = {};   // urunId -> o kartta o an gösterilen renk
+let aktifTarafByProduct = {};   // urunId -> 'on' | 'arka' (o an gösterilen görsel yönü)
 
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
 function fmt(n){ return Number(n||0).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
@@ -478,15 +484,26 @@ function renderUrunler(){
     const aktifRenk = activeRenkByProduct[p.id] && renkler.includes(activeRenkByProduct[p.id])
       ? activeRenkByProduct[p.id] : (renkler[0] || '');
     const aktifBedenler = renkler.length ? vars.filter(v=>v.renk===aktifRenk) : vars;
-    const gorsel = (aktifBedenler.find(v=>v.gorselUrl) || vars.find(v=>v.gorselUrl) || {}).gorselUrl || '';
+    const gorselVaryant = aktifBedenler.find(v=>v.gorselUrl) || vars.find(v=>v.gorselUrl) || {};
+    const arkaVarMi = !!gorselVaryant.gorselUrlArka;
+    const aktifTaraf = (aktifTarafByProduct[p.id]==='arka' && arkaVarMi) ? 'arka' : 'on';
+    const gorsel = aktifTaraf==='arka' ? gorselVaryant.gorselUrlArka : (gorselVaryant.gorselUrl||'');
 
     const renkRowHtml = renkler.length>1 ? `<div class="renk-row">
         ${renkler.map(r=>`<button type="button" class="renk-swatch${r===aktifRenk?' active':''}" data-uid="${esc(p.id)}" data-renk="${esc(r)}" style="background:${CMAP[r]||'#bbb'}" title="${esc(r)}"></button>`).join('')}
         <span class="renk-adi">${esc(aktifRenk)}</span>
       </div>` : (renkler.length===1 ? `<div class="renk-row"><span class="renk-adi">${esc(renkler[0])}</span></div>` : '');
 
+    const gorselHtml = gorsel ? `<div class="urun-gorsel-wrap">
+        <img class="urun-gorsel" src="${esc(gorsel)}" alt="${esc(p.ad)}" loading="lazy">
+        ${arkaVarMi ? `<div class="gorsel-taraf-secim">
+          <button type="button" class="taraf-thumb${aktifTaraf==='on'?' active':''}" data-uid="${esc(p.id)}" data-taraf="on" title="Ön" aria-label="Ön görsel"><img src="${esc(gorselVaryant.gorselUrl)}" alt="" loading="lazy"></button>
+          <button type="button" class="taraf-thumb${aktifTaraf==='arka'?' active':''}" data-uid="${esc(p.id)}" data-taraf="arka" title="Arka" aria-label="Arka görsel"><img src="${esc(gorselVaryant.gorselUrlArka)}" alt="" loading="lazy"></button>
+        </div>` : ''}
+      </div>` : '';
+
     return `<div class="urun-card">
-      ${gorsel ? `<img class="urun-gorsel" src="${esc(gorsel)}" alt="${esc(p.ad)}" loading="lazy">` : ''}
+      ${gorselHtml}
       <div class="urun-ad">${esc(p.ad)}</div>
       <div class="urun-fiyat">${fiyatHtml}</div>
       ${renkRowHtml}
@@ -509,6 +526,13 @@ function renderUrunler(){
   grid.querySelectorAll('.renk-swatch').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       activeRenkByProduct[btn.dataset.uid] = btn.dataset.renk;
+      aktifTarafByProduct[btn.dataset.uid] = 'on'; // renk değişince öne dön
+      renderUrunler();
+    });
+  });
+  grid.querySelectorAll('.taraf-thumb').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      aktifTarafByProduct[btn.dataset.uid] = btn.dataset.taraf;
       renderUrunler();
     });
   });
