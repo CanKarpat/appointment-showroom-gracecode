@@ -104,17 +104,17 @@ h2.section-title{font-size:14px;font-weight:700;margin:0 0 10px}
 .ozet-card .degistir-btn:hover{text-decoration:underline}
 
 /* ── Calendly-benzeri takvim ──────────────────────── */
-.cal-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px;margin-bottom:14px;width:100%;max-width:300px;margin-left:auto;margin-right:auto}
-.cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
-.cal-header .cal-month-label{font-size:12px;font-weight:700}
-.cal-nav-btn{width:24px;height:24px;border:1px solid var(--border-strong);border-radius:6px;background:var(--surface);color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center}
+.cal-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px;width:100%;max-width:500px;margin-left:auto;margin-right:auto}
+.cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px}
+.cal-header .cal-month-label{font-size:20px;font-weight:700}
+.cal-nav-btn{width:40px;height:40px;border:1px solid var(--border-strong);border-radius:10px;background:var(--surface);color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center}
 .cal-nav-btn:hover{background:var(--surface2)}
 .cal-nav-btn:disabled{opacity:.35;cursor:default}
 .cal-nav-btn:disabled:hover{background:var(--surface)}
-.cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:2px}
-.cal-weekdays span{text-align:center;font-size:9px;font-weight:700;color:var(--text-muted);text-transform:uppercase}
-.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
-.cal-cell{aspect-ratio:1;border:none;border-radius:6px;background:transparent;font-size:11px;font-weight:500;color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit}
+.cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:3px}
+.cal-weekdays span{text-align:center;font-size:15px;font-weight:700;color:var(--text-muted);text-transform:uppercase}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.cal-cell{aspect-ratio:1;border:none;border-radius:10px;background:transparent;font-size:18px;font-weight:500;color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit}
 .cal-cell.empty{cursor:default}
 .cal-cell:not(.empty):not(.disabled):not(.selected):hover{background:var(--accent-bg);color:var(--accent-text)}
 .cal-cell.disabled{color:var(--text-muted);opacity:.35;cursor:default}
@@ -204,11 +204,11 @@ h2.section-title{font-size:14px;font-weight:700;margin:0 0 10px}
       <div class="cal-box">
         <div class="cal-header">
           <button type="button" class="cal-nav-btn" id="cal-prev" onclick="navCalendar(-1)" aria-label="Önceki ay">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
           <div class="cal-month-label" id="cal-month-label"></div>
           <button type="button" class="cal-nav-btn" id="cal-next" onclick="navCalendar(1)" aria-label="Sonraki ay">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
           </button>
         </div>
         <div class="cal-weekdays"><span>Pzt</span><span>Sal</span><span>Çar</span><span>Per</span><span>Cum</span><span>Cmt</span><span>Paz</span></div>
