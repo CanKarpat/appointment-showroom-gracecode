@@ -41,6 +41,7 @@
   --warning-bg:#2a1e08;--warning-text:#f0b060;
 }
 body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px}
+.hidden{display:none!important}
 header{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border);background:var(--surface);flex-wrap:wrap}
 header h1{font-size:15px;font-weight:700;white-space:nowrap}
 .sync-badge{font-size:11px;padding:3px 8px;border-radius:20px;display:flex;align-items:center;gap:4px}
@@ -62,16 +63,55 @@ header .spacer{flex:1}
 .btn.primary:hover{opacity:.9}
 .btn.ghost{background:transparent;border-color:var(--border);color:var(--text-sec)}
 
-.table-wrap{overflow-x:auto;background:var(--surface);border:1px solid var(--border);border-radius:10px}
-table{width:100%;border-collapse:collapse;font-size:12px;min-width:1000px}
-th{padding:8px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--text-muted);text-align:left;border-bottom:1px solid var(--border);background:var(--surface2);white-space:nowrap}
-td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top}
-tr:last-child td{border-bottom:none}
-
 .badge{font-size:10px;font-weight:600;padding:2px 7px;border-radius:9px;white-space:nowrap}
 .badge-bd{background:var(--warning-bg);color:var(--warning-text)}
 
 .urun-chip{display:inline-block;background:var(--surface2);border-radius:6px;padding:2px 7px;font-size:11px;margin:1px 3px 1px 0;white-space:nowrap}
+
+/* ── Görünüm sekmeleri (Liste / Takvim) ────────────── */
+.view-tabs{display:flex;gap:4px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:3px;margin-bottom:12px;width:fit-content}
+.view-tab{height:32px;padding:0 16px;border:none;border-radius:7px;background:transparent;color:var(--text-sec);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}
+.view-tab.active{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+
+/* ── Randevu kartları (liste görünümü) ─────────────── */
+.randevu-list{display:flex;flex-direction:column;gap:10px}
+.randevu-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px}
+.rc-top{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:9px}
+.rc-tarih{font-size:14px;font-weight:700;white-space:nowrap}
+.rc-spacer{flex:1}
+.rc-musteri{display:flex;flex-wrap:wrap;align-items:center;gap:4px 16px;font-size:12px;color:var(--text-sec);margin-bottom:8px}
+.rc-musteri b{color:var(--text);font-weight:600}
+.rc-musteri a{color:inherit;text-decoration:none}
+.rc-musteri a:hover{color:var(--accent-text)}
+.rc-urun-toggle{font-size:12px;color:var(--accent-text);background:none;border:none;cursor:pointer;font-family:inherit;padding:0;display:flex;align-items:center;gap:5px}
+.rc-urun-toggle svg{transition:transform .15s}
+.rc-urun-toggle.open svg{transform:rotate(90deg)}
+.rc-urunler{display:none;flex-wrap:wrap;gap:5px;margin-top:8px}
+.rc-urunler.show{display:flex}
+.rc-bottom{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;padding-top:9px;border-top:1px solid var(--border);font-size:11px;color:var(--text-muted)}
+.rc-actions{display:flex;gap:2px;flex-shrink:0}
+
+/* ── Takvim görünümü ────────────────────────────────── */
+.admin-cal-wrap{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start}
+.admin-cal-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;width:100%;max-width:400px}
+.admin-cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.admin-cal-header .acb-label{font-size:15px;font-weight:700}
+.admin-cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:3px}
+.admin-cal-weekdays span{text-align:center;font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase}
+.admin-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.admin-cal-cell{position:relative;aspect-ratio:1;border:1px solid transparent;border-radius:8px;background:transparent;font-size:13px;font-weight:500;color:var(--text);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:inherit;gap:2px}
+.admin-cal-cell.empty{cursor:default}
+.admin-cal-cell:not(.empty):hover{background:var(--surface2)}
+.admin-cal-cell.has-appt{font-weight:700}
+.admin-cal-cell.selected{border-color:var(--accent);background:var(--accent-bg)}
+.acc-badge{font-size:9px;font-weight:700;color:#fff;background:var(--accent);border-radius:8px;min-width:15px;height:15px;padding:0 3px;display:flex;align-items:center;justify-content:center;line-height:1}
+.gun-detay-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;flex:1;min-width:260px}
+.gun-detay-box h2{font-size:14px;font-weight:700;margin-bottom:10px}
+.gun-randevu-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px}
+.gun-randevu-item:last-child{border-bottom:none}
+.gri-saat{font-weight:700;color:var(--accent-text);min-width:42px}
+.gri-isim{flex:1;color:var(--text)}
+.gri-urun{color:var(--text-muted);white-space:nowrap}
 
 .inline-time{border:1px solid var(--input-border);border-radius:5px;padding:3px 5px;font-size:12px;font-weight:600;background:transparent;color:var(--text);font-family:inherit}
 .inline-time:focus{outline:none;border-color:var(--input-border-focus)}
@@ -124,24 +164,45 @@ tr:last-child td{border-bottom:none}
 </header>
 
 <div class="container">
-  <div class="toolbar">
-    <div class="search-wrap">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-      <input type="text" id="search" placeholder="Müşteri adı veya telefon ara...">
-    </div>
+  <div class="view-tabs">
+    <button type="button" class="view-tab active" data-view="liste" onclick="switchView('liste')">Liste</button>
+    <button type="button" class="view-tab" data-view="takvim" onclick="switchView('takvim')">Takvim</button>
   </div>
 
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th>Tarih</th><th>Saat</th><th>Müşteri</th><th>Telefon</th><th>E-posta</th>
-          <th>Ürünler</th><th>BD</th><th>Durum</th><th>Oluşturuldu</th><th>Not</th><th></th>
-        </tr>
-      </thead>
-      <tbody id="randevu-tbody"></tbody>
-    </table>
+  <!-- Liste görünümü -->
+  <div id="view-liste">
+    <div class="toolbar">
+      <div class="search-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        <input type="text" id="search" placeholder="Müşteri adı veya telefon ara...">
+      </div>
+    </div>
+    <div class="randevu-list" id="randevu-list"></div>
     <div class="empty-state hidden" id="empty-state">Henüz randevu yok.</div>
+  </div>
+
+  <!-- Takvim görünümü -->
+  <div id="view-takvim" class="hidden">
+    <div class="admin-cal-wrap">
+      <div class="admin-cal-box">
+        <div class="admin-cal-header">
+          <button type="button" class="cal-nav-btn" onclick="navTakvim(-1)" aria-label="Önceki ay" style="width:30px;height:30px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface);color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <div class="acb-label" id="admin-cal-month-label"></div>
+          <button type="button" class="cal-nav-btn" onclick="navTakvim(1)" aria-label="Sonraki ay" style="width:30px;height:30px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface);color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+        <div class="admin-cal-weekdays"><span>Pzt</span><span>Sal</span><span>Çar</span><span>Per</span><span>Cum</span><span>Cmt</span><span>Paz</span></div>
+        <div class="admin-cal-grid" id="admin-cal-grid"></div>
+      </div>
+
+      <div class="gun-detay-box">
+        <h2 id="takvim-gun-baslik">Bir gün seçin</h2>
+        <div id="takvim-gun-liste"><p style="color:var(--text-muted);font-size:12px">Detaylarını görmek için takvimden bir gün seçin.</p></div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -274,15 +335,26 @@ function formatZaman(ts){ if(!ts?.toDate) return '—'; const d=ts.toDate(); ret
 
 window.logout = () => signOut(auth);
 
+const AY_ADLARI = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
+
 let randevular = [];
 let search = '';
+let view = 'liste';
+let takvimYear, takvimMonth;   // takvim görünümünde o an gösterilen ay (takvimMonth: 0-11)
+let takvimSeciliGun = null;    // takvimde seçilen gün (ISO), detay panelinde gösterilir
+
+(function(){
+  const bugun = new Date();
+  takvimYear = bugun.getFullYear();
+  takvimMonth = bugun.getMonth();
+})();
 
 onAuthStateChanged(auth, user=>{
   if(!user){ location.href = 'giris.html?redirect=yonetim.html'; return; }
   document.getElementById('user-email').textContent = user.email || '';
   onSnapshot(collection(db,'randevular'), snap=>{
     randevular = snap.docs.map(d=>({id:d.id, ...d.data()}));
-    randevular.sort((a,b)=> (a.randevuTarihi||'').localeCompare(b.randevuTarihi||''));
+    randevular.sort((a,b)=> (a.randevuTarihi||'').localeCompare(b.randevuTarihi||'') || (a.randevuSaati||'').localeCompare(b.randevuSaati||''));
     render();
     setSyncStatus('online');
   }, ()=>setSyncStatus('offline'));
@@ -293,39 +365,124 @@ document.getElementById('search').addEventListener('input', e=>{
   render();
 });
 
+window.switchView = function(v){
+  view = v;
+  document.querySelectorAll('.view-tab').forEach(b=>b.classList.toggle('active', b.dataset.view===v));
+  document.getElementById('view-liste').classList.toggle('hidden', v!=='liste');
+  document.getElementById('view-takvim').classList.toggle('hidden', v!=='takvim');
+  if(v==='takvim'){ renderAdminCalendar(); renderGunDetay(); }
+};
+
 function render(){
+  renderListe();
+  if(view==='takvim'){ renderAdminCalendar(); renderGunDetay(); }
+}
+
+// ── Liste görünümü (kart) ──────────────────────────
+function renderListe(){
   const filtered = randevular.filter(r=>{
     if(!search) return true;
     return (r.musteriAdi||'').toLowerCase().includes(search) || (r.musteriTelefon||'').toLowerCase().includes(search);
   });
-  const tbody = document.getElementById('randevu-tbody');
+  const listEl = document.getElementById('randevu-list');
   document.getElementById('empty-state').classList.toggle('hidden', filtered.length>0);
-  tbody.innerHTML = filtered.map(r=>{
-    const urunlerHtml = (r.urunler||[]).map(u=>`<span class="urun-chip">${esc(u.urunAdi)} — ${esc(u.beden)} ${esc(u.renk)}</span>`).join('');
-    return `<tr>
-      <td>${formatTarih(r.randevuTarihi)}</td>
-      <td><input type="time" class="inline-time" value="${esc(r.randevuSaati||'')}" data-id="${r.id}" onchange="updSaat('${r.id}',this.value)"></td>
-      <td>${esc(r.musteriAdi)}</td>
-      <td>${r.musteriTelefon ? `<a href="tel:${esc(r.musteriTelefon)}" style="color:var(--text)">${esc(r.musteriTelefon)}</a>` : '—'}</td>
-      <td>${esc(r.musteriEposta)||'—'}</td>
-      <td>${urunlerHtml}</td>
-      <td>${r.bdVarMi ? '<span class="badge badge-bd">BD</span>' : ''}</td>
-      <td>
-        <select class="inline-sel" onchange="updDurum('${r.id}',this.value)">
-          <option value="yeni"${r.durum==='yeni'?' selected':''}>Yeni</option>
-          <option value="onaylandi"${r.durum==='onaylandi'?' selected':''}>Onaylandı</option>
-          <option value="iptal"${r.durum==='iptal'?' selected':''}>İptal</option>
-        </select>
-      </td>
-      <td style="white-space:nowrap;color:var(--text-muted)">${formatZaman(r.olusturulmaTarihi)}</td>
-      <td><button class="icon-btn${r.not?' has-note':''}" title="${r.not?'Not var — görüntüle/düzenle':'Not ekle'}" onclick="showNotModal('${r.id}')">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-      </button></td>
-      <td><button class="icon-btn del" title="Sil" onclick="silRandevu('${r.id}')">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
-      </button></td>
-    </tr>`;
-  }).join('');
+  listEl.innerHTML = filtered.map(renderRandevuCard).join('');
+}
+
+function renderRandevuCard(r){
+  const urunSayisi = (r.urunler||[]).length;
+  const urunlerHtml = (r.urunler||[]).map(u=>`<span class="urun-chip">${esc(u.urunAdi)} — ${esc(u.beden)} ${esc(u.renk)}</span>`).join('');
+  return `<div class="randevu-card">
+    <div class="rc-top">
+      <span class="rc-tarih">${formatTarih(r.randevuTarihi)}</span>
+      <input type="time" class="inline-time" value="${esc(r.randevuSaati||'')}" onchange="updSaat('${r.id}',this.value)">
+      ${r.bdVarMi ? '<span class="badge badge-bd">BD</span>' : ''}
+      <div class="rc-spacer"></div>
+      <select class="inline-sel" onchange="updDurum('${r.id}',this.value)">
+        <option value="yeni"${r.durum==='yeni'?' selected':''}>Yeni</option>
+        <option value="onaylandi"${r.durum==='onaylandi'?' selected':''}>Onaylandı</option>
+        <option value="iptal"${r.durum==='iptal'?' selected':''}>İptal</option>
+      </select>
+    </div>
+    <div class="rc-musteri">
+      <b>${esc(r.musteriAdi)}</b>
+      <span>${r.musteriTelefon ? `<a href="tel:${esc(r.musteriTelefon)}">${esc(r.musteriTelefon)}</a>` : '—'}</span>
+      <span>${esc(r.musteriEposta)||'—'}</span>
+    </div>
+    <button type="button" class="rc-urun-toggle" id="rc-toggle-${r.id}" onclick="toggleUrunler('${r.id}')">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+      ${urunSayisi} ürün
+    </button>
+    <div class="rc-urunler" id="rc-urunler-${r.id}">${urunlerHtml}</div>
+    <div class="rc-bottom">
+      <span>Oluşturuldu: ${formatZaman(r.olusturulmaTarihi)}</span>
+      <div class="rc-actions">
+        <button class="icon-btn${r.not?' has-note':''}" title="${r.not?'Not var — görüntüle/düzenle':'Not ekle'}" onclick="showNotModal('${r.id}')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        </button>
+        <button class="icon-btn del" title="Sil" onclick="silRandevu('${r.id}')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>`;
+}
+
+window.toggleUrunler = function(id){
+  document.getElementById('rc-urunler-'+id).classList.toggle('show');
+  document.getElementById('rc-toggle-'+id).classList.toggle('open');
+};
+
+// ── Takvim görünümü ─────────────────────────────────
+window.navTakvim = function(delta){
+  takvimMonth += delta;
+  if(takvimMonth<0){ takvimMonth=11; takvimYear--; }
+  else if(takvimMonth>11){ takvimMonth=0; takvimYear++; }
+  renderAdminCalendar();
+};
+
+function renderAdminCalendar(){
+  const first = new Date(takvimYear, takvimMonth, 1);
+  const startWeekday = (first.getDay()+6)%7; // Pazartesi=0
+  const daysInMonth = new Date(takvimYear, takvimMonth+1, 0).getDate();
+
+  let cells = '';
+  for(let i=0;i<startWeekday;i++) cells += `<div class="admin-cal-cell empty"></div>`;
+  for(let d=1; d<=daysInMonth; d++){
+    const iso = `${takvimYear}-${String(takvimMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const sayi = randevular.filter(r=>r.randevuTarihi===iso).length;
+    const secili = iso===takvimSeciliGun;
+    cells += `<button type="button" class="admin-cal-cell${sayi?' has-appt':''}${secili?' selected':''}" data-date="${iso}">
+      <span>${d}</span>${sayi?`<span class="acc-badge">${sayi}</span>`:''}
+    </button>`;
+  }
+  document.getElementById('admin-cal-grid').innerHTML = cells;
+  document.getElementById('admin-cal-month-label').textContent = `${AY_ADLARI[takvimMonth]} ${takvimYear}`;
+  document.querySelectorAll('.admin-cal-cell[data-date]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{ takvimSeciliGun = btn.dataset.date; renderAdminCalendar(); renderGunDetay(); });
+  });
+}
+
+function renderGunDetay(){
+  const baslikEl = document.getElementById('takvim-gun-baslik');
+  const listeEl = document.getElementById('takvim-gun-liste');
+  if(!takvimSeciliGun){
+    baslikEl.textContent = 'Bir gün seçin';
+    listeEl.innerHTML = '<p style="color:var(--text-muted);font-size:12px">Detaylarını görmek için takvimden bir gün seçin.</p>';
+    return;
+  }
+  const gununRandevulari = randevular
+    .filter(r=>r.randevuTarihi===takvimSeciliGun)
+    .sort((a,b)=>(a.randevuSaati||'').localeCompare(b.randevuSaati||''));
+  baslikEl.textContent = `${formatTarih(takvimSeciliGun)} — ${gununRandevulari.length} randevu`;
+  listeEl.innerHTML = gununRandevulari.length
+    ? gununRandevulari.map(r=>`<div class="gun-randevu-item">
+        <span class="gri-saat">${esc(r.randevuSaati||'—')}</span>
+        <span class="gri-isim">${esc(r.musteriAdi)}</span>
+        <span class="gri-urun">${(r.urunler||[]).length} ürün</span>
+        ${r.bdVarMi?'<span class="badge badge-bd">BD</span>':''}
+      </div>`).join('')
+    : '<p style="color:var(--text-muted);font-size:12px">Bu günde randevu yok.</p>';
 }
 
 window.updSaat = async function(id, val){
