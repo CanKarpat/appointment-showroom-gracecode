@@ -294,6 +294,7 @@ const CMAP = {Siyah:'#1a1a1a',Ekru:'#f5f0e0',Bordo:'#7b1e34',Lacivert:'#1a2a5e',
 let products = [];        // magaza_urunler dokümanları
 let selected = [];         // seçilen varyantlar: {urunId,urunAdi,urunKodu,sku,renk,beden,gorselUrl,bd}
 let depozitoLinki = '';
+let depozitoAktif = true;
 let step = 1;               // 1=ürünler, 2=tarih, 3=iletişim
 let calViewYear, calViewMonth;  // takvimde o an gösterilen ay (calViewMonth: 0-11)
 let selectedDateISO = '';
@@ -338,6 +339,7 @@ onSnapshot(collection(db,'magaza_urunler'), snap=>{
 getDoc(doc(db,'config','randevuAyarlari')).then(snap=>{
   const d = snap.exists() ? snap.data() : {};
   depozitoLinki = d.depozitoLinki || '';
+  depozitoAktif = d.depozitoAktif !== false;
   ayarlar = {
     calismaBaslangic: d.calismaBaslangic || '10:00',
     calismaBitis: d.calismaBitis || '19:00',
@@ -858,7 +860,9 @@ function renderSonuc(veri){
     <div><b>Ad Soyad:</b> ${esc(veri.musteriAdi)}</div>
   `;
   const wrap = document.getElementById('depozito-wrap');
-  if(depozitoLinki){
+  if(!depozitoAktif){
+    wrap.innerHTML = '';
+  } else if(depozitoLinki){
     wrap.innerHTML = `<a class="btn block" target="_blank" rel="noopener" href="${esc(depozitoLinki)}">Depozito Öde</a>`;
   } else {
     wrap.innerHTML = `<p style="font-size:12px;color:var(--text-muted)">Depozito ödeme linki henüz tanımlanmadı, mağaza sizinle iletişime geçecek.</p>`;

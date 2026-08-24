@@ -94,8 +94,14 @@ tr:last-child td{border-bottom:none}
 
 .form-group{display:flex;flex-direction:column;gap:5px}
 .form-group label{font-size:12px;font-weight:500;color:var(--text-sec)}
-.form-group input,.form-group select{padding:8px 10px;border:1px solid var(--input-border);border-radius:var(--radius);background:var(--surface2);color:var(--text);font-size:13px;font-family:inherit}
-.form-group input:focus,.form-group select:focus{outline:none;border-color:var(--input-border-focus)}
+.form-group input,.form-group select,.form-group textarea{padding:8px 10px;border:1px solid var(--input-border);border-radius:var(--radius);background:var(--surface2);color:var(--text);font-size:13px;font-family:inherit}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{outline:none;border-color:var(--input-border-focus)}
+.form-group textarea{resize:vertical}
+
+.check-row{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text)}
+.check-row input{width:auto!important;padding:0!important}
+
+.icon-btn.has-note{color:var(--accent)}
 
 .mini-chip{display:inline-flex;align-items:center;gap:5px;background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:3px 8px 3px 10px;font-size:11px}
 .mini-chip button{border:none;background:none;color:var(--text-muted);cursor:pointer;font-size:14px;line-height:1;padding:0}
@@ -130,7 +136,7 @@ tr:last-child td{border-bottom:none}
       <thead>
         <tr>
           <th>Tarih</th><th>Saat</th><th>Müşteri</th><th>Telefon</th><th>E-posta</th>
-          <th>Ürünler</th><th>BD</th><th>Durum</th><th>Oluşturuldu</th><th></th>
+          <th>Ürünler</th><th>BD</th><th>Durum</th><th>Oluşturuldu</th><th>Not</th><th></th>
         </tr>
       </thead>
       <tbody id="randevu-tbody"></tbody>
@@ -149,8 +155,15 @@ tr:last-child td{border-bottom:none}
       </button>
     </div>
     <div class="modal-body">
-      <p>Randevu tamamlandıktan sonra müşteriye gösterilecek "Depozito Öde" butonunun gideceği İKAS Sepet Linki'ni buraya yapıştır (İKAS admin panelinde: Ürünler → Tanımlamalar → Sepet Linki, Depozito ürünü seçilerek oluşturulur).</p>
+      <p>Randevu tamamlandıktan sonra müşteriye "Depozito Öde" butonu gösterilsin mi ve gideceği İKAS Sepet Linki (İKAS admin panelinde: Ürünler → Tanımlamalar → Sepet Linki, Depozito ürünü seçilerek oluşturulur).</p>
       <div class="form-group" style="margin-top:10px">
+        <label class="check-row">
+          <input type="checkbox" id="ra-depozito-aktif" onchange="toggleDepozitoAlanlari()">
+          Depozito ödemesine yönlendir
+        </label>
+        <p style="font-size:11px;color:var(--text-muted);margin:0">Kapatırsanız randevu tamamlandığında müşteriye "Depozito Öde" butonu hiç gösterilmez — link kayıtlı kalır, istediğinizde tekrar açabilirsiniz.</p>
+      </div>
+      <div class="form-group" style="margin-top:10px" id="ra-depozito-link-wrap">
         <label>İKAS Depozito Sepet Linki</label>
         <input type="url" id="ra-depozito-link" placeholder="https://...">
       </div>
@@ -188,6 +201,29 @@ tr:last-child td{border-bottom:none}
     <div class="modal-footer">
       <button class="btn ghost" onclick="closeRandevuSettingsModal()">Kapat</button>
       <button class="btn primary" id="randevu-settings-btn" onclick="saveRandevuSettings()">Kaydet</button>
+    </div>
+  </div>
+</div>
+
+<!-- Not modalı -->
+<div class="modal-bg hidden" id="not-modal">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header">
+      <h2>Randevu Notu</h2>
+      <button class="icon-btn" onclick="closeNotModal()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Not</label>
+        <textarea id="not-textarea" rows="6" placeholder="Bu randevuyla ilgili özel bir not..."></textarea>
+      </div>
+      <div id="not-result" style="margin-top:10px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn ghost" onclick="closeNotModal()">Kapat</button>
+      <button class="btn primary" id="not-save-btn" onclick="saveNot()">Kaydet</button>
     </div>
   </div>
 </div>
@@ -282,6 +318,9 @@ function render(){
         </select>
       </td>
       <td style="white-space:nowrap;color:var(--text-muted)">${formatZaman(r.olusturulmaTarihi)}</td>
+      <td><button class="icon-btn${r.not?' has-note':''}" title="${r.not?'Not var — görüntüle/düzenle':'Not ekle'}" onclick="showNotModal('${r.id}')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      </button></td>
       <td><button class="icon-btn del" title="Sil" onclick="silRandevu('${r.id}')">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
       </button></td>
@@ -313,6 +352,34 @@ window.silRandevu = async function(id){
   }
 };
 
+// ── Not modalı ─────────────────────────────────────
+let notModalRandevuId = null;
+window.showNotModal = function(id){
+  const r = randevular.find(x=>x.id===id);
+  notModalRandevuId = id;
+  document.getElementById('not-textarea').value = r?.not || '';
+  document.getElementById('not-result').innerHTML = '';
+  document.getElementById('not-modal').classList.remove('hidden');
+};
+window.closeNotModal = () => document.getElementById('not-modal').classList.add('hidden');
+window.saveNot = async function(){
+  const btn = document.getElementById('not-save-btn');
+  const resultEl = document.getElementById('not-result');
+  const val = document.getElementById('not-textarea').value.trim();
+  const eskiMetin = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Kaydediliyor...';
+  resultEl.innerHTML = '';
+  try{
+    await updateDoc(doc(db,'randevular',notModalRandevuId), { not: val, guncellemeTarihi: serverTimestamp() });
+    closeNotModal();
+  }catch(err){
+    resultEl.innerHTML = `<div style="background:var(--danger-bg);color:var(--danger-text);border-radius:8px;padding:8px 10px">Kaydedilemedi: ${esc(err.message)}</div>`;
+    btn.disabled = false; btn.textContent = eskiMetin;
+    return;
+  }
+  btn.disabled = false; btn.textContent = eskiMetin;
+};
+
 // ── Ayarlar modalı ────────────────────────────────
 let kapaliTarihlerDraft = [];
 
@@ -342,26 +409,37 @@ window.kapaliTarihSil = function(tarih){
   renderKapaliTarihlerListesi();
 };
 
+window.toggleDepozitoAlanlari = function(){
+  const acik = document.getElementById('ra-depozito-aktif').checked;
+  document.getElementById('ra-depozito-link-wrap').style.opacity = acik ? '1' : '.5';
+};
+
 window.showRandevuSettingsModal = async function(){
   const resultEl = document.getElementById('randevu-settings-result');
   resultEl.innerHTML = '';
   document.getElementById('ra-depozito-link').value = '';
+  document.getElementById('ra-depozito-aktif').checked = true;
   document.getElementById('ra-calisma-baslangic').value = '10:00';
   document.getElementById('ra-calisma-bitis').value = '19:00';
   document.getElementById('ra-slot-dakika').value = '60';
   kapaliTarihlerDraft = [];
   renderKapaliTarihlerListesi();
+  toggleDepozitoAlanlari();
   document.getElementById('randevu-settings-modal').classList.remove('hidden');
   try{
     const snap = await getDoc(doc(db,'config','randevuAyarlari'));
     if(snap.exists()){
       const d = snap.data();
       document.getElementById('ra-depozito-link').value = d.depozitoLinki || '';
+      // Alan hiç kaydedilmemişse (eski ayarlar) varsayılan olarak açık kabul edilir — link
+      // varsa buton zaten önceden gösteriliyordu, davranış aniden değişmesin diye.
+      document.getElementById('ra-depozito-aktif').checked = d.depozitoAktif !== false;
       document.getElementById('ra-calisma-baslangic').value = d.calismaBaslangic || '10:00';
       document.getElementById('ra-calisma-bitis').value = d.calismaBitis || '19:00';
       document.getElementById('ra-slot-dakika').value = String(d.slotDakika || 60);
       kapaliTarihlerDraft = (d.kapaliTarihler || []).slice().sort();
       renderKapaliTarihlerListesi();
+      toggleDepozitoAlanlari();
     }
   }catch(err){
     resultEl.innerHTML = `<div style="background:var(--danger-bg);color:var(--danger-text);border-radius:8px;padding:8px 10px">Mevcut ayarlar okunamadı: ${esc(err.message)}</div>`;
@@ -373,6 +451,7 @@ window.saveRandevuSettings = async function(){
   const btn = document.getElementById('randevu-settings-btn');
   const resultEl = document.getElementById('randevu-settings-result');
   const link = document.getElementById('ra-depozito-link').value.trim();
+  const depozitoAktif = document.getElementById('ra-depozito-aktif').checked;
   const calismaBaslangic = document.getElementById('ra-calisma-baslangic').value || '10:00';
   const calismaBitis = document.getElementById('ra-calisma-bitis').value || '19:00';
   const slotDakika = Number(document.getElementById('ra-slot-dakika').value) || 60;
@@ -382,6 +461,7 @@ window.saveRandevuSettings = async function(){
   try{
     await setDoc(doc(db,'config','randevuAyarlari'), {
       depozitoLinki: link,
+      depozitoAktif,
       calismaBaslangic, calismaBitis, slotDakika,
       kapaliTarihler: kapaliTarihlerDraft,
       guncellendi: serverTimestamp(),
