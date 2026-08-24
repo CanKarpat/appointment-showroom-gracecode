@@ -70,6 +70,7 @@ h2.section-title{font-size:14px;font-weight:700;margin:0 0 10px}
 .taraf-thumb img{width:100%;height:100%;object-fit:cover;display:block}
 .taraf-thumb.active{border-color:var(--accent)}
 .urun-card .urun-ad{font-size:13px;font-weight:600;margin-bottom:2px}
+.urun-card .urun-kod{font-size:11px;color:var(--text-muted);font-family:monospace;margin-bottom:4px}
 .urun-card .urun-fiyat{font-size:12px;color:var(--text-sec);margin-bottom:9px}
 .urun-card .urun-fiyat .eski{text-decoration:line-through;color:var(--text-muted);margin-right:5px}
 
@@ -91,6 +92,7 @@ h2.section-title{font-size:14px;font-weight:700;margin:0 0 10px}
 .secim-item .secim-info{flex:1;min-width:0}
 .secim-item .secim-ad{font-weight:600}
 .secim-item .secim-detay{color:var(--text-muted)}
+.secim-item .secim-sku{color:var(--text-muted);font-family:monospace;font-size:11px;margin-top:1px}
 .secim-item button{border:none;background:none;color:var(--text-muted);cursor:pointer;font-size:16px;line-height:1;padding:4px}
 .secim-item button:hover{color:var(--danger-text)}
 
@@ -531,13 +533,14 @@ function renderUrunler(){
     return `<div class="urun-card">
       ${gorselHtml}
       <div class="urun-ad">${esc(p.ad)}</div>
+      ${p.kod ? `<div class="urun-kod">Ürün Kodu: ${esc(p.kod)}</div>` : ''}
       <div class="urun-fiyat">${fiyatHtml}</div>
       ${renkRowHtml}
       <div class="beden-pills">
         ${aktifBedenler.map(v=>{
           const key = selKey(p.id, v.sku);
           const secili = selected.some(s=>selKey(s.urunId,s.sku)===key);
-          return `<button type="button" class="beden-pill${secili?' selected':''}" data-uid="${esc(p.id)}" data-sku="${esc(v.sku)}">
+          return `<button type="button" class="beden-pill${secili?' selected':''}" data-uid="${esc(p.id)}" data-sku="${esc(v.sku)}" title="${v.sku?'SKU: '+esc(v.sku):''}">
             ${esc(v.beden)}
             ${v.bd ? '<span class="bd-dot" title="Bu ürün Bursa depodan getirtilir, randevu en erken 3 gün sonra alınabilir">BD</span>' : ''}
           </button>`;
@@ -606,6 +609,7 @@ function renderSecim(){
     <div class="secim-info">
       <div class="secim-ad">${esc(s.urunAdi)}</div>
       <div class="secim-detay">${esc(s.beden)} beden ${esc(s.renk)}${s.bd ? ' · BD' : ''}</div>
+      ${s.sku ? `<div class="secim-sku">SKU: ${esc(s.sku)}</div>` : ''}
     </div>
     <button type="button" data-uid="${esc(s.urunId)}" data-sku="${esc(s.sku)}" title="Kaldır">×</button>
   </div>`).join('');

@@ -67,6 +67,7 @@ header .spacer{flex:1}
 .badge-bd{background:var(--warning-bg);color:var(--warning-text)}
 
 .urun-chip{display:inline-block;background:var(--surface2);border-radius:6px;padding:2px 7px;font-size:11px;margin:1px 3px 1px 0;white-space:nowrap}
+.urun-chip-sku{font-family:monospace;color:var(--text-muted)}
 
 /* ── Görünüm sekmeleri (Liste / Takvim) ────────────── */
 .view-tabs{display:flex;gap:4px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:3px;margin-bottom:12px;width:fit-content}
@@ -391,7 +392,7 @@ function renderListe(){
 
 function renderRandevuCard(r){
   const urunSayisi = (r.urunler||[]).length;
-  const urunlerHtml = (r.urunler||[]).map(u=>`<span class="urun-chip">${esc(u.urunAdi)} — ${esc(u.beden)} ${esc(u.renk)}</span>`).join('');
+  const urunlerHtml = (r.urunler||[]).map(u=>`<span class="urun-chip">${esc(u.urunAdi)} — ${esc(u.beden)} ${esc(u.renk)}${u.sku?` <span class="urun-chip-sku">(${esc(u.sku)})</span>`:''}</span>`).join('');
   return `<div class="randevu-card">
     <div class="rc-top">
       <span class="rc-tarih">${formatTarih(r.randevuTarihi)}</span>
