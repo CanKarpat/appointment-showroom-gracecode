@@ -533,7 +533,7 @@ function renderUrunler(){
     return `<div class="urun-card">
       ${gorselHtml}
       <div class="urun-ad">${esc(p.ad)}</div>
-      ${p.kod ? `<div class="urun-kod">Ürün Kodu: ${esc(p.kod)}</div>` : ''}
+      ${p.kod ? `<div class="urun-kod">SKU: ${esc(p.kod)}</div>` : ''}
       <div class="urun-fiyat">${fiyatHtml}</div>
       ${renkRowHtml}
       <div class="beden-pills">
