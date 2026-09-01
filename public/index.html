@@ -321,8 +321,15 @@ function formatTR(iso){ const [y,m,d] = iso.split('-'); return `${d}.${m}.${y}`;
 function getMinDateISO(){ return selected.some(s=>s.bd) ? addDaysISO(3) : todayISO(); }
 
 // ── Firestore ─────────────────────────────────────
+// Çanta gibi renk/beden ayrımı olmayan ("varyantsız") ürünler burada elenir — randevu akışı
+// zaten renk+beden seçtirdiği için (ör. "38 beden lacivert"), o seçimin hiç yapılamayacağı bir
+// ürünün bu listede işi yok. SKU'daki "Ürün Tipi" kısaltmasını (ör. "CNT") burada tekrar
+// yorumlamak yerine (stock-caka tarafındaki Kısaltmalar tablosu değişirse burası sessizce
+// bozulurdu) zaten senkronlanan varyantlar[].renk/beden'e bakıyoruz — stock-caka'da da aynı
+// "varyantsız ürün" tanımı (TÜM varyantlarında renk VE beden boş) kullanılıyor.
 onSnapshot(collection(db,'magaza_urunler'), snap=>{
-  products = snap.docs.map(d=>({id:d.id, ...d.data()}));
+  products = snap.docs.map(d=>({id:d.id, ...d.data()}))
+    .filter(p=>(p.varyantlar||[]).some(v=>v.renk || v.beden));
   document.getElementById('loading-state').classList.add('hidden');
   if(!products.length){
     document.getElementById('empty-state').classList.remove('hidden');
