@@ -377,11 +377,26 @@ getDoc(doc(db,'config','randevuAyarlari')).then(snap=>{
   ayarlar = {
     calismaBaslangic: d.calismaBaslangic || '10:00',
     calismaBitis: d.calismaBitis || '19:00',
+    haftalikProgram: d.haftalikProgram || null, // gün bazlı açık/kapalı + saat — bkz. gunProgrami()
     slotDakika: Number(d.slotDakika) || 60,
     kapaliTarihler: d.kapaliTarihler || [],
   };
   kvkkMetni = d.kvkkMetni || '';
+  renderCalendar(); // program geç geldiyse (ilk çizimden sonra) takvimi güncel kurala göre yenile
 }).catch(()=>{});
+
+// Haftalık Çalışma Programı henüz kaydedilmemişse (eski ayarlar) her gün açık kabul edilip
+// eski tek global calismaBaslangic/calismaBitis'e düşülür — mevcut ayarlar bozulmasın diye.
+function haftaGunu(iso){
+  const [y,m,d] = iso.split('-').map(Number);
+  return (new Date(y, m-1, d).getDay()+6)%7; // 0=Pazartesi..6=Pazar (takvim ile aynı çevirim)
+}
+function gunProgrami(iso){
+  const gun = haftaGunu(iso);
+  const g = ayarlar.haftalikProgram && ayarlar.haftalikProgram[gun];
+  if(g) return g;
+  return { acik: true, baslangic: ayarlar.calismaBaslangic, bitis: ayarlar.calismaBitis };
+}
 
 window.showKvkkModal = function(e){
   if(e) e.preventDefault();
@@ -706,7 +721,7 @@ function renderCalendar(){
   for(let i=0;i<startWeekday;i++) cells += `<div class="cal-cell empty"></div>`;
   for(let d=1; d<=daysInMonth; d++){
     const iso = `${calViewYear}-${String(calViewMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const disabled = iso < minISO || ayarlar.kapaliTarihler.includes(iso);
+    const disabled = iso < minISO || ayarlar.kapaliTarihler.includes(iso) || !gunProgrami(iso).acik;
     const sel = iso === selectedDateISO;
     cells += `<button type="button" class="cal-cell${disabled?' disabled':''}${sel?' selected':''}" ${disabled?'disabled':''} data-date="${iso}">${d}</button>`;
   }
@@ -730,9 +745,11 @@ window.navCalendar = function(delta){
   renderCalendar();
 };
 
-function slotListesi(){
-  const [bh,bm] = ayarlar.calismaBaslangic.split(':').map(Number);
-  const [eh,em] = ayarlar.calismaBitis.split(':').map(Number);
+function slotListesi(iso){
+  const program = gunProgrami(iso);
+  if(!program.acik) return [];
+  const [bh,bm] = program.baslangic.split(':').map(Number);
+  const [eh,em] = program.bitis.split(':').map(Number);
   const baslangicDk = bh*60+bm, bitisDk = eh*60+em;
   const slots = [];
   for(let dk=baslangicDk; dk<bitisDk; dk+=ayarlar.slotDakika){
@@ -773,7 +790,7 @@ async function selectCalendarDay(iso){
 function renderSaatSecimi(){
   const pillsEl = document.getElementById('saat-pills');
   const bosEl = document.getElementById('saat-bos-mesaj');
-  let slots = slotListesi();
+  let slots = slotListesi(selectedDateISO);
   // Bugün seçildiyse geçmiş saatleri (şu ana kadar olanları) listeden çıkar.
   if(selectedDateISO === todayISO()){
     const simdi = new Date();

@@ -231,12 +231,9 @@ header .spacer{flex:1}
       </div>
 
       <div class="form-group" style="margin-top:16px">
-        <label>Çalışma Saatleri</label>
-        <div style="display:flex;gap:8px;align-items:center">
-          <input type="time" id="ra-calisma-baslangic" style="flex:1">
-          <span>—</span>
-          <input type="time" id="ra-calisma-bitis" style="flex:1">
-        </div>
+        <label>Haftalık Çalışma Programı</label>
+        <p style="font-size:11px;color:var(--text-muted);margin:0 0 8px">Her gün için ayrı saat aralığı belirleyebilir, istediğiniz günleri (ör. hafta sonu) tamamen kapatabilirsiniz — bir kere ayarlayınca her hafta elle güncellemeye gerek kalmaz. Belirli bir günü (ör. bir bayram tatili) tek seferlik kapatmak için aşağıdaki "Kapalı Tarihler"i kullanın.</p>
+        <div id="ra-haftalik-program" style="display:flex;flex-direction:column;gap:6px"></div>
       </div>
       <div class="form-group" style="margin-top:10px">
         <label>Randevu Aralığı</label>
@@ -343,6 +340,7 @@ function formatZaman(ts){ if(!ts?.toDate) return '—'; const d=ts.toDate(); ret
 window.logout = () => signOut(auth);
 
 const AY_ADLARI = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
+const GUN_ADLARI = ['Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi','Pazar']; // 0=Pazartesi..6=Pazar, takvimdeki hafta başlangıcıyla aynı
 
 let randevular = [];
 let search = '';
@@ -578,13 +576,40 @@ window.toggleDepozitoAlanlari = function(){
   document.getElementById('ra-depozito-link-wrap').style.opacity = acik ? '1' : '.5';
 };
 
+// Haftalık Çalışma Programı: gün başına açık/kapalı + kendi saat aralığı. Eski tek global
+// calismaBaslangic/calismaBitis alanlarının yerini alıyor — program hiç kaydedilmemişse (eski
+// ayarlar) o eski değerler (yoksa 10:00-19:00) her gün için varsayılan olarak kullanılıyor,
+// böylece mevcut ayarlar aniden bozulmuyor.
+function renderHaftalikProgramUI(program, fallbackBaslangic, fallbackBitis){
+  const wrap = document.getElementById('ra-haftalik-program');
+  wrap.innerHTML = GUN_ADLARI.map((ad, gun)=>{
+    const g = (program && program[gun]) || {};
+    const acik = g.acik !== false;
+    const bas = g.baslangic || fallbackBaslangic || '10:00';
+    const bit = g.bitis || fallbackBitis || '19:00';
+    return `<div style="display:flex;align-items:center;gap:8px">
+      <label class="check-row" style="width:104px;flex-shrink:0">
+        <input type="checkbox" id="ra-gun-acik-${gun}" ${acik?'checked':''} onchange="toggleGunSaatleri(${gun})">
+        ${ad}
+      </label>
+      <input type="time" id="ra-gun-bas-${gun}" value="${bas}" style="flex:1" ${acik?'':'disabled'}>
+      <span>—</span>
+      <input type="time" id="ra-gun-bit-${gun}" value="${bit}" style="flex:1" ${acik?'':'disabled'}>
+    </div>`;
+  }).join('');
+}
+window.toggleGunSaatleri = function(gun){
+  const acik = document.getElementById(`ra-gun-acik-${gun}`).checked;
+  document.getElementById(`ra-gun-bas-${gun}`).disabled = !acik;
+  document.getElementById(`ra-gun-bit-${gun}`).disabled = !acik;
+};
+
 window.showRandevuSettingsModal = async function(){
   const resultEl = document.getElementById('randevu-settings-result');
   resultEl.innerHTML = '';
   document.getElementById('ra-depozito-link').value = '';
   document.getElementById('ra-depozito-aktif').checked = true;
-  document.getElementById('ra-calisma-baslangic').value = '10:00';
-  document.getElementById('ra-calisma-bitis').value = '19:00';
+  renderHaftalikProgramUI(null, '10:00', '19:00');
   document.getElementById('ra-slot-dakika').value = '60';
   document.getElementById('ra-kvkk-metni').value = '';
   kapaliTarihlerDraft = [];
@@ -599,8 +624,7 @@ window.showRandevuSettingsModal = async function(){
       // Alan hiç kaydedilmemişse (eski ayarlar) varsayılan olarak açık kabul edilir — link
       // varsa buton zaten önceden gösteriliyordu, davranış aniden değişmesin diye.
       document.getElementById('ra-depozito-aktif').checked = d.depozitoAktif !== false;
-      document.getElementById('ra-calisma-baslangic').value = d.calismaBaslangic || '10:00';
-      document.getElementById('ra-calisma-bitis').value = d.calismaBitis || '19:00';
+      renderHaftalikProgramUI(d.haftalikProgram, d.calismaBaslangic, d.calismaBitis);
       document.getElementById('ra-slot-dakika').value = String(d.slotDakika || 60);
       document.getElementById('ra-kvkk-metni').value = d.kvkkMetni || '';
       kapaliTarihlerDraft = (d.kapaliTarihler || []).slice().sort();
@@ -618,8 +642,13 @@ window.saveRandevuSettings = async function(){
   const resultEl = document.getElementById('randevu-settings-result');
   const link = document.getElementById('ra-depozito-link').value.trim();
   const depozitoAktif = document.getElementById('ra-depozito-aktif').checked;
-  const calismaBaslangic = document.getElementById('ra-calisma-baslangic').value || '10:00';
-  const calismaBitis = document.getElementById('ra-calisma-bitis').value || '19:00';
+  const haftalikProgram = {};
+  for(let gun=0; gun<7; gun++){
+    const acik = document.getElementById(`ra-gun-acik-${gun}`).checked;
+    haftalikProgram[gun] = acik
+      ? { acik: true, baslangic: document.getElementById(`ra-gun-bas-${gun}`).value || '10:00', bitis: document.getElementById(`ra-gun-bit-${gun}`).value || '19:00' }
+      : { acik: false };
+  }
   const slotDakika = Number(document.getElementById('ra-slot-dakika').value) || 60;
   const kvkkMetni = document.getElementById('ra-kvkk-metni').value.trim();
   const eskiMetin = btn.textContent;
@@ -629,7 +658,7 @@ window.saveRandevuSettings = async function(){
     await setDoc(doc(db,'config','randevuAyarlari'), {
       depozitoLinki: link,
       depozitoAktif,
-      calismaBaslangic, calismaBitis, slotDakika,
+      haftalikProgram, slotDakika,
       kvkkMetni,
       kapaliTarihler: kapaliTarihlerDraft,
       guncellendi: serverTimestamp(),
