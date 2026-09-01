@@ -154,6 +154,15 @@ h2.section-title{font-size:14px;font-weight:700;margin:0 0 10px}
 .sonuc-box p{font-size:13px;color:var(--text-sec);margin-bottom:14px;line-height:1.6}
 .sonuc-ozet{background:var(--surface2);border-radius:8px;padding:10px 12px;margin-bottom:16px;font-size:12px;color:var(--text-sec)}
 .sonuc-ozet div{margin-bottom:3px}
+
+.kvkk-row{display:flex;align-items:flex-start;gap:8px;margin:14px 0;font-size:12.5px;line-height:1.6;color:var(--text-sec)}
+.kvkk-row input{width:auto!important;flex-shrink:0;margin-top:2px}
+.kvkk-row a{color:var(--accent);font-weight:600;cursor:pointer;text-decoration:underline}
+.kvkk-modal-bg{position:fixed;inset:0;background:rgba(36,17,17,.5);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px}
+.kvkk-modal{background:var(--surface);border-radius:14px;width:100%;max-width:520px;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.kvkk-modal-head{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-shrink:0}
+.kvkk-modal-head h2{font-size:15px;margin:0}
+.kvkk-modal-body{padding:16px 20px;overflow-y:auto;font-size:13px;line-height:1.7;color:var(--text-sec);white-space:pre-wrap}
 </style>
 </head>
 <body>
@@ -250,6 +259,11 @@ h2.section-title{font-size:14px;font-weight:700;margin:0 0 10px}
           <input type="email" id="musteri-eposta" required autocomplete="email">
         </div>
 
+        <label class="kvkk-row">
+          <input type="checkbox" id="kvkk-onay" required>
+          <span>Kişisel verilerimin randevu talebimin alınması amacıyla işlenmesini kabul ediyorum. <a onclick="showKvkkModal(event)">Aydınlatma Metni'ni okudum.</a></span>
+        </label>
+
         <div id="error-box"></div>
 
         <div class="btn-row">
@@ -270,6 +284,16 @@ h2.section-title{font-size:14px;font-weight:700;margin:0 0 10px}
     <div id="depozito-wrap"></div>
   </div>
 
+</div>
+
+<div class="kvkk-modal-bg hidden" id="kvkk-modal-bg" onclick="if(event.target===this) closeKvkkModal()">
+  <div class="kvkk-modal">
+    <div class="kvkk-modal-head">
+      <h2>Aydınlatma Metni</h2>
+      <button type="button" onclick="closeKvkkModal()" style="border:none;background:none;cursor:pointer;color:var(--text-muted);font-size:20px;line-height:1;padding:4px">×</button>
+    </div>
+    <div class="kvkk-modal-body" id="kvkk-modal-body">Yükleniyor...</div>
+  </div>
 </div>
 
 <script type="module">
@@ -297,6 +321,7 @@ let products = [];        // magaza_urunler dokümanları
 let selected = [];         // seçilen varyantlar: {urunId,urunAdi,urunKodu,sku,renk,beden,gorselUrl,bd}
 let depozitoLinki = '';
 let depozitoAktif = true;
+let kvkkMetni = '';        // config/randevuAyarlari.kvkkMetni — Aydınlatma Metni popup içeriği
 let step = 1;               // 1=ürünler, 2=tarih, 3=iletişim
 let calViewYear, calViewMonth;  // takvimde o an gösterilen ay (calViewMonth: 0-11)
 let selectedDateISO = '';
@@ -355,7 +380,16 @@ getDoc(doc(db,'config','randevuAyarlari')).then(snap=>{
     slotDakika: Number(d.slotDakika) || 60,
     kapaliTarihler: d.kapaliTarihler || [],
   };
+  kvkkMetni = d.kvkkMetni || '';
 }).catch(()=>{});
+
+window.showKvkkModal = function(e){
+  if(e) e.preventDefault();
+  document.getElementById('kvkk-modal-body').textContent = kvkkMetni ||
+    'Aydınlatma metni yönetim panelinden henüz eklenmedi. Bilgi almak için mağazamızla iletişime geçebilirsiniz.';
+  document.getElementById('kvkk-modal-bg').classList.remove('hidden');
+};
+window.closeKvkkModal = () => document.getElementById('kvkk-modal-bg').classList.add('hidden');
 
 // Kategori ağacının tamamı — sadece o an yüklü ürünlerin taşıdığı kategoriler değil, mağazadaki
 // TÜM kategoriler burada gösterilebilsin diye ayrı çekiliyor (magaza_urunler'deki ürün sayısı
@@ -803,6 +837,7 @@ function validateForm(){
   if(!document.getElementById('musteri-adi').value.trim()) return 'Lütfen adınızı girin.';
   if(!document.getElementById('musteri-telefon').value.trim()) return 'Lütfen telefon numaranızı girin.';
   if(!document.getElementById('musteri-eposta').value.trim()) return 'Lütfen e-posta adresinizi girin.';
+  if(!document.getElementById('kvkk-onay').checked) return 'Devam etmek için kişisel verilerinizin işlenmesini kabul etmeniz gerekiyor.';
   return null;
 }
 
@@ -824,6 +859,7 @@ document.getElementById('randevu-form').addEventListener('submit', async (e)=>{
     bdVarMi,
     randevuTarihi: selectedDateISO,
     randevuSaati: selectedSaat,
+    kvkkOnaylandi: true, // validateForm() zaten zorunlu tutuyor; Firestore kuralı da bunu ayrıca doğruluyor
     durum: 'yeni',
     olusturulmaTarihi: serverTimestamp(),
     guncellemeTarihi: serverTimestamp(),

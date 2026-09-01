@@ -258,6 +258,12 @@ header .spacer{flex:1}
         <div id="ra-kapali-tarihler-list" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px"></div>
       </div>
 
+      <div class="form-group" style="margin-top:16px">
+        <label>KVKK Aydınlatma Metni</label>
+        <p style="font-size:11px;color:var(--text-muted);margin:0 0 6px">Müşteri, randevu formunda "Aydınlatma Metni'ni okudum" onay kutusunu işaretleyip bu metni açıp okuyabiliyor. Buraya avukatınızdan aldığınız metni yapıştırın — boş bırakırsanız müşteriye "henüz eklenmedi" mesajı gösterilir.</p>
+        <textarea id="ra-kvkk-metni" rows="6" style="width:100%;resize:vertical;font-family:inherit;font-size:13px;padding:8px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface);color:var(--text)"></textarea>
+      </div>
+
       <div id="randevu-settings-result" style="margin-top:10px"></div>
     </div>
     <div class="modal-footer">
@@ -580,6 +586,7 @@ window.showRandevuSettingsModal = async function(){
   document.getElementById('ra-calisma-baslangic').value = '10:00';
   document.getElementById('ra-calisma-bitis').value = '19:00';
   document.getElementById('ra-slot-dakika').value = '60';
+  document.getElementById('ra-kvkk-metni').value = '';
   kapaliTarihlerDraft = [];
   renderKapaliTarihlerListesi();
   toggleDepozitoAlanlari();
@@ -595,6 +602,7 @@ window.showRandevuSettingsModal = async function(){
       document.getElementById('ra-calisma-baslangic').value = d.calismaBaslangic || '10:00';
       document.getElementById('ra-calisma-bitis').value = d.calismaBitis || '19:00';
       document.getElementById('ra-slot-dakika').value = String(d.slotDakika || 60);
+      document.getElementById('ra-kvkk-metni').value = d.kvkkMetni || '';
       kapaliTarihlerDraft = (d.kapaliTarihler || []).slice().sort();
       renderKapaliTarihlerListesi();
       toggleDepozitoAlanlari();
@@ -613,6 +621,7 @@ window.saveRandevuSettings = async function(){
   const calismaBaslangic = document.getElementById('ra-calisma-baslangic').value || '10:00';
   const calismaBitis = document.getElementById('ra-calisma-bitis').value || '19:00';
   const slotDakika = Number(document.getElementById('ra-slot-dakika').value) || 60;
+  const kvkkMetni = document.getElementById('ra-kvkk-metni').value.trim();
   const eskiMetin = btn.textContent;
   btn.disabled = true; btn.textContent = 'Kaydediliyor...';
   resultEl.innerHTML = '';
@@ -621,6 +630,7 @@ window.saveRandevuSettings = async function(){
       depozitoLinki: link,
       depozitoAktif,
       calismaBaslangic, calismaBitis, slotDakika,
+      kvkkMetni,
       kapaliTarihler: kapaliTarihlerDraft,
       guncellendi: serverTimestamp(),
     }, { merge:true });
