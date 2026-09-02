@@ -18,6 +18,16 @@
   --radius:8px;
 }
 body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;line-height:1.5}
+
+/* ── Dokunma geri bildirimi (mobilde hover olmadığı için basılınca hafif küçülme) ── */
+.btn,.kategori-chip,.renk-filtre-chip,.beden-pill,.saat-pill,.sepete-ekle-btn,.sepet-fab,
+.cal-cell:not(.empty):not(.disabled){transition:transform .1s ease}
+.btn:active,.kategori-chip:active,.renk-filtre-chip:active,.beden-pill:active,.saat-pill:active,
+.sepete-ekle-btn:active,.sepet-fab:active,.cal-cell:not(.empty):not(.disabled):active{transform:scale(.97)}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{transition:none!important;animation:none!important}
+}
+
 .container{max-width:1400px;margin:0 auto;padding:24px}
 @media(max-width:640px){
   .container{padding:14px}
@@ -84,6 +94,15 @@ h2.section-title{font-size:14px;font-weight:700;margin:0 0 10px}
 /* ── Ürün seçimi ─────────────────────────────────── */
 .urun-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-bottom:16px}
 .urun-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px}
+
+/* ── İskelet (skeleton) yükleme durumu — düz "yükleniyor" metni yerine sayfanın kabaca
+   son halini gösterir, algılanan bekleme süresini kısaltır ── */
+.skeleton-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px}
+.skeleton-img,.skeleton-line,.skeleton-pill{background:linear-gradient(90deg,var(--surface2) 25%,var(--border) 37%,var(--surface2) 63%);background-size:400% 100%;animation:skeleton-sheen 1.4s ease infinite;border-radius:8px}
+.skeleton-img{width:100%;aspect-ratio:3/4;margin-bottom:8px}
+.skeleton-line{height:10px;border-radius:4px;margin-bottom:6px}
+.skeleton-pill{width:72px;height:36px}
+@keyframes skeleton-sheen{0%{background-position:100% 50%}100%{background-position:0 50%}}
 .urun-gorsel-wrap{position:relative;margin-bottom:8px}
 .urun-gorsel-wrap:not(.buyuk){cursor:pointer}
 .urun-card .urun-gorsel{width:100%;aspect-ratio:3/4;border-radius:8px;background:var(--surface2);object-fit:cover;display:block}
@@ -196,6 +215,9 @@ h2.section-title{font-size:14px;font-weight:700;margin:0 0 10px}
 .form-group label{font-size:12px;font-weight:500;color:var(--text-sec)}
 .form-group input{height:38px;padding:0 12px;border:1px solid var(--input-border);border-radius:var(--radius);background:var(--surface2);color:var(--text);font-size:14px;font-family:inherit}
 .form-group input:focus{border-color:var(--input-border-focus)}
+.form-group input.invalid{border-color:var(--danger-text)}
+.field-hint{font-size:11px;color:var(--text-muted)}
+.field-hint.err{color:var(--danger-text)}
 @media(max-width:600px){.form-group input{font-size:16px}}
 
 .warn-box{margin-bottom:12px;padding:9px 12px;background:var(--warning-bg);color:var(--warning-text);border-radius:8px;font-size:12px;line-height:1.5}
@@ -236,7 +258,14 @@ h2.section-title{font-size:14px;font-weight:700;margin:0 0 10px}
 
 <div class="container">
 
-  <div id="loading-state" class="state-msg">Ürünler yükleniyor...</div>
+  <div id="loading-state" class="urun-grid" aria-hidden="true" aria-label="Ürünler yükleniyor">
+    <div class="skeleton-card"><div class="skeleton-img"></div><div class="skeleton-line" style="width:75%"></div><div class="skeleton-line" style="width:45%"></div></div>
+    <div class="skeleton-card"><div class="skeleton-img"></div><div class="skeleton-line" style="width:75%"></div><div class="skeleton-line" style="width:45%"></div></div>
+    <div class="skeleton-card"><div class="skeleton-img"></div><div class="skeleton-line" style="width:75%"></div><div class="skeleton-line" style="width:45%"></div></div>
+    <div class="skeleton-card"><div class="skeleton-img"></div><div class="skeleton-line" style="width:75%"></div><div class="skeleton-line" style="width:45%"></div></div>
+    <div class="skeleton-card"><div class="skeleton-img"></div><div class="skeleton-line" style="width:75%"></div><div class="skeleton-line" style="width:45%"></div></div>
+    <div class="skeleton-card"><div class="skeleton-img"></div><div class="skeleton-line" style="width:75%"></div><div class="skeleton-line" style="width:45%"></div></div>
+  </div>
   <div id="empty-state" class="state-msg hidden">Şu anda randevu alınabilecek ürün bulunmuyor.</div>
 
   <div id="wizard" class="hidden">
@@ -299,7 +328,10 @@ h2.section-title{font-size:14px;font-weight:700;margin:0 0 10px}
 
       <div id="saat-secim-section" class="hidden">
         <h2 class="section-title">Saat</h2>
-        <div id="saat-yukleniyor" class="state-msg hidden" style="padding:14px">Müsait saatler kontrol ediliyor...</div>
+        <div id="saat-yukleniyor" class="saat-pills hidden" aria-hidden="true" aria-label="Müsait saatler kontrol ediliyor">
+          <div class="skeleton-pill"></div><div class="skeleton-pill"></div><div class="skeleton-pill"></div>
+          <div class="skeleton-pill"></div><div class="skeleton-pill"></div><div class="skeleton-pill"></div>
+        </div>
         <div class="saat-pills" id="saat-pills"></div>
         <div id="saat-bos-mesaj" class="warn-box hidden">Bu tarihte müsait saat kalmadı, lütfen başka bir tarih seçin.</div>
       </div>
@@ -325,11 +357,12 @@ h2.section-title{font-size:14px;font-weight:700;margin:0 0 10px}
         </div>
         <div class="form-group">
           <label>Telefon</label>
-          <input type="tel" id="musteri-telefon" required autocomplete="tel">
+          <input type="tel" id="musteri-telefon" required autocomplete="tel" inputmode="tel">
+          <span class="field-hint" id="tel-hint">Randevu onayınız bu numaradan WhatsApp üzerinden iletilecektir.</span>
         </div>
         <div class="form-group">
           <label>E-posta</label>
-          <input type="email" id="musteri-eposta" required autocomplete="email">
+          <input type="email" id="musteri-eposta" required autocomplete="email" inputmode="email">
         </div>
 
         <label class="kvkk-row">
@@ -353,9 +386,10 @@ h2.section-title{font-size:14px;font-weight:700;margin:0 0 10px}
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--success-text)" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>
       Randevunuz Alındı
     </h2>
-    <p>Randevu talebiniz kaydedildi, mağazamız en kısa sürede sizinle iletişime geçecek.</p>
+    <p>Randevu talebiniz kaydedildi. WhatsApp üzerinden en kısa sürede sizinle iletişime geçeceğiz.</p>
     <div class="sonuc-ozet" id="sonuc-ozet"></div>
     <div id="depozito-wrap"></div>
+    <p style="font-size:11px;color:var(--text-muted);margin-top:10px;line-height:1.6">Depozito, satın alım durumunda ürün fiyatından düşülür. Showroom alışverişlerinde iade kabul edilmez, değişim yapılabilir.</p>
   </div>
 
 </div>
@@ -485,7 +519,9 @@ onSnapshot(collection(db,'magaza_urunler'), snap=>{
   renderRenkBedenFiltre();
   renderUrunler();
 }, err=>{
-  document.getElementById('loading-state').textContent = 'Ürünler yüklenemedi: ' + err.message;
+  const el = document.getElementById('loading-state');
+  el.className = 'state-msg';
+  el.textContent = 'Ürünler yüklenemedi: ' + err.message;
 });
 
 getDoc(doc(db,'config','randevuAyarlari')).then(snap=>{
@@ -920,6 +956,7 @@ function toggleVariant(urunId, sku){
       urunId: p.id, urunAdi: p.ad||'', urunKodu: p.kod||'',
       sku: v.sku||'', renk: v.renk||'', beden: v.beden||'', gorselUrl: v.gorselUrl||'', bd: !!v.bd,
     });
+    if(navigator.vibrate) try{ navigator.vibrate(10); }catch(e){}
   }
   renderUrunler();
   renderSecim();
@@ -1141,6 +1178,37 @@ function validateForm(){
   if(!document.getElementById('kvkk-onay').checked) return 'Devam etmek için kişisel verilerinizin işlenmesini kabul etmeniz gerekiyor.';
   return null;
 }
+
+// Alan bazlı anlık doğrulama: kullanıcı bir alandan ayrıldığında (blur) kontrol edilir,
+// yazarken rahatsız edilmez — gönderirken hepsi zaten validateForm() ile tekrar kontrol edilir.
+(function wireInlineFieldValidation(){
+  const adi = document.getElementById('musteri-adi');
+  const tel = document.getElementById('musteri-telefon');
+  const telHint = document.getElementById('tel-hint');
+  const eposta = document.getElementById('musteri-eposta');
+  const epostaRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  adi.addEventListener('blur', ()=> adi.classList.toggle('invalid', !adi.value.trim()));
+  adi.addEventListener('input', ()=> adi.classList.remove('invalid'));
+
+  tel.addEventListener('blur', ()=>{
+    const bos = !tel.value.trim();
+    tel.classList.toggle('invalid', bos);
+    telHint.textContent = bos ? 'Lütfen telefon numaranızı girin.' : 'Randevu onayınız bu numaradan WhatsApp üzerinden iletilecektir.';
+    telHint.classList.toggle('err', bos);
+  });
+  tel.addEventListener('input', ()=>{
+    tel.classList.remove('invalid');
+    telHint.textContent = 'Randevu onayınız bu numaradan WhatsApp üzerinden iletilecektir.';
+    telHint.classList.remove('err');
+  });
+
+  eposta.addEventListener('blur', ()=>{
+    const deger = eposta.value.trim();
+    eposta.classList.toggle('invalid', !deger || !epostaRegex.test(deger));
+  });
+  eposta.addEventListener('input', ()=> eposta.classList.remove('invalid'));
+})();
 
 document.getElementById('randevu-form').addEventListener('submit', async (e)=>{
   e.preventDefault();
