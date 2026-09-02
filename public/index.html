@@ -110,6 +110,17 @@ h2.section-title{font-size:14px;font-weight:700;margin:0 0 10px}
 .sepete-ekle-btn:disabled{opacity:.4;cursor:default}
 .sepete-ekle-btn.cikar{background:var(--surface2);color:var(--danger-text);border:1px solid var(--danger-text)}
 
+.beden-tablosu-link{display:inline-flex;align-items:center;gap:4px;margin-top:7px;border:none;background:none;color:var(--accent-text);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;text-decoration:underline;padding:0}
+.bt-modal-bg{position:fixed;inset:0;background:rgba(36,17,17,.5);z-index:210;display:flex;align-items:center;justify-content:center;padding:16px}
+.bt-modal-bg.hidden{display:none}
+.bt-modal{background:var(--surface);border-radius:14px;width:100%;max-width:420px;max-height:80vh;overflow-y:auto;padding:18px;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.bt-modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.bt-modal-head h2{font-size:15px;margin:0}
+.bt-modal-head button{border:none;background:none;cursor:pointer;color:var(--text-muted);font-size:20px;line-height:1;padding:4px}
+.bt-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:4px}
+.bt-table th,.bt-table td{padding:7px 8px;text-align:center;border-bottom:1px solid var(--border)}
+.bt-table th{color:var(--text-muted);font-weight:700;font-size:11px}
+
 .secim-list{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
 .secim-item{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:12px}
 .secim-item img{width:34px;height:34px;border-radius:6px;object-fit:cover;background:var(--surface2);flex-shrink:0}
@@ -243,8 +254,8 @@ h2.section-title{font-size:14px;font-weight:700;margin:0 0 10px}
 
       <div class="urun-layout">
         <aside class="urun-sidebar">
-          <div class="renk-beden-filtre filtre-kutu hidden" id="renk-filtre"></div>
           <div class="renk-beden-filtre filtre-kutu hidden" id="beden-filtre"></div>
+          <div class="renk-beden-filtre filtre-kutu hidden" id="renk-filtre"></div>
         </aside>
         <div class="urun-main">
           <div class="urun-grid" id="urun-grid"></div>
@@ -347,6 +358,16 @@ h2.section-title{font-size:14px;font-weight:700;margin:0 0 10px}
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
     </button>
     <div id="urun-detay-icerik"></div>
+  </div>
+</div>
+
+<div class="bt-modal-bg hidden" id="beden-tablosu-modal" onclick="if(event.target===this) closeBedenTablosu()">
+  <div class="bt-modal">
+    <div class="bt-modal-head">
+      <h2>Beden Tablosu</h2>
+      <button type="button" onclick="closeBedenTablosu()" aria-label="Kapat">×</button>
+    </div>
+    <div id="beden-tablosu-icerik"></div>
   </div>
 </div>
 
@@ -686,6 +707,11 @@ function urunKartInnerHtml(p, buyuk){
   const pendingKey = pendingVaryant ? selKey(p.id, pendingVaryant.sku) : '';
   const pendingSepette = pendingVaryant && selected.some(s=>selKey(s.urunId,s.sku)===pendingKey);
 
+  // Ölçüler renkten bağımsız (vücut ölçüsü), o yüzden aktif renge değil ürünün TÜM
+  // varyantlarına bakılır — Stock-caka henüz senkronlamadıysa (gogus/bel/basen boşsa)
+  // link hiç gösterilmez.
+  const bedenTablosuVarMi = vars.some(v=>Number(v.gogus)||Number(v.bel)||Number(v.basen));
+
   return `${gorselHtml}
     <div class="urun-ad">${esc(p.ad)}</div>
     ${p.kod ? `<div class="urun-kod">SKU: ${esc(p.kod)}</div>` : ''}
@@ -702,6 +728,7 @@ function urunKartInnerHtml(p, buyuk){
         </button>`;
       }).join('')}
     </div>
+    ${bedenTablosuVarMi ? `<button type="button" class="beden-tablosu-link" data-uid="${esc(p.id)}">Beden Tablosu</button>` : ''}
     <button type="button" class="sepete-ekle-btn${pendingSepette?' cikar':''}" data-uid="${esc(p.id)}" ${!pendingVaryant?'disabled':''}>
       ${pendingSepette ? 'Sepetten Çıkar' : 'Sepete Ekle'}
     </button>`;
@@ -716,6 +743,9 @@ function attachUrunEtkilesimleri(container){
   });
   container.querySelectorAll('.sepete-ekle-btn').forEach(btn=>{
     btn.addEventListener('click', ()=> sepeteEkleTikla(btn.dataset.uid));
+  });
+  container.querySelectorAll('.beden-tablosu-link').forEach(btn=>{
+    btn.addEventListener('click', ()=> openBedenTablosu(btn.dataset.uid));
   });
   container.querySelectorAll('.renk-swatch').forEach(btn=>{
     btn.addEventListener('click', ()=>{
@@ -808,6 +838,7 @@ function renderUrunDetayIcerik(p){
 document.addEventListener('keydown', e=>{
   if(e.key==='Escape' && urunDetayAcikId) closeUrunDetay();
   if(e.key==='Escape') closeSepetPanel();
+  if(e.key==='Escape') closeBedenTablosu();
 });
 
 // ── Sticky sepet butonu ─────────────────────────────
@@ -816,6 +847,34 @@ window.toggleSepetPanel = function(){
 };
 window.closeSepetPanel = function(){
   document.getElementById('sepet-panel-bg').classList.add('hidden');
+};
+
+// ── Beden tablosu (göğüs/bel/basen — Stock-caka'dan senkronlanırsa gösterilir) ──
+window.openBedenTablosu = function(urunId){
+  const p = products.find(x=>x.id===urunId); if(!p) return;
+  const map = {};
+  (p.varyantlar||[]).forEach(v=>{
+    if(!v.beden || map[v.beden]) return;
+    const gogus = Number(v.gogus)||0, bel = Number(v.bel)||0, basen = Number(v.basen)||0;
+    if(!gogus && !bel && !basen) return;
+    map[v.beden] = {gogus, bel, basen};
+  });
+  const bedenler = Object.keys(map).sort((a,b)=>a.localeCompare(b,'tr',{numeric:true}));
+  const el = document.getElementById('beden-tablosu-icerik');
+  el.innerHTML = !bedenler.length
+    ? '<p class="state-msg" style="padding:16px 0">Bu ürün için beden tablosu bilgisi henüz eklenmedi.</p>'
+    : `<p class="hint" style="margin-bottom:6px">Ölçüler cm cinsindendir. Beden seçmeden önce kontrol etmenizi öneririz.</p>
+      <table class="bt-table">
+        <thead><tr><th>Beden</th><th>Göğüs</th><th>Bel</th><th>Basen</th></tr></thead>
+        <tbody>${bedenler.map(b=>{
+          const m = map[b];
+          return `<tr><td>${esc(b)}</td><td>${m.gogus||'—'}</td><td>${m.bel||'—'}</td><td>${m.basen||'—'}</td></tr>`;
+        }).join('')}</tbody>
+      </table>`;
+  document.getElementById('beden-tablosu-modal').classList.remove('hidden');
+};
+window.closeBedenTablosu = function(){
+  document.getElementById('beden-tablosu-modal').classList.add('hidden');
 };
 
 document.getElementById('urun-arama').addEventListener('input', e=>{
