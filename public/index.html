@@ -143,6 +143,9 @@ h2.section-title{font-size:14px;font-weight:700;margin:0 0 10px}
 .bt-modal{background:var(--surface);border-radius:14px;width:100%;max-width:420px;max-height:80vh;overflow-y:auto;padding:18px;box-shadow:0 20px 60px rgba(0,0,0,.25)}
 .bt-modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .bt-modal-head h2{font-size:15px;margin:0}
+.bt-urun-info{margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.bt-urun-ad{font-size:13px;font-weight:700}
+.bt-urun-sku{font-size:11px;color:var(--text-muted);font-family:monospace;margin-top:2px}
 .bt-modal-head button{border:none;background:none;cursor:pointer;color:var(--text-muted);font-size:20px;line-height:1;padding:4px}
 .bt-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:4px}
 .bt-table th,.bt-table td{padding:7px 8px;text-align:center;border-bottom:1px solid var(--border)}
@@ -908,7 +911,11 @@ window.openBedenTablosu = function(urunId){
   });
   const bedenler = Object.keys(map).sort((a,b)=>a.localeCompare(b,'tr',{numeric:true}));
   const el = document.getElementById('beden-tablosu-icerik');
-  el.innerHTML = !bedenler.length
+  const urunBilgiHtml = `<div class="bt-urun-info">
+      <div class="bt-urun-ad">${esc(p.ad)}</div>
+      ${p.kod ? `<div class="bt-urun-sku">SKU: ${esc(p.kod)}</div>` : ''}
+    </div>`;
+  el.innerHTML = urunBilgiHtml + (!bedenler.length
     ? '<p class="state-msg" style="padding:16px 0">Bu ürün için beden tablosu bilgisi henüz eklenmedi.</p>'
     : `<p class="hint" style="margin-bottom:6px">Ölçüler cm cinsindendir. Beden seçmeden önce kontrol etmenizi öneririz.</p>
       <table class="bt-table">
@@ -917,7 +924,7 @@ window.openBedenTablosu = function(urunId){
           const m = map[b];
           return `<tr><td>${esc(b)}</td><td>${m.gogus||'—'}</td><td>${m.bel||'—'}</td><td>${m.basen||'—'}</td></tr>`;
         }).join('')}</tbody>
-      </table>`;
+      </table>`);
   document.getElementById('beden-tablosu-modal').classList.remove('hidden');
 };
 window.closeBedenTablosu = function(){
