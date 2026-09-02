@@ -392,9 +392,9 @@ h2.section-title{font-size:14px;font-weight:700;margin:0 0 10px}
   <div id="sonuc-view" class="sonuc-box hidden">
     <h2>
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--success-text)" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/></svg>
-      Randevunuz Alındı
+      <span id="sonuc-baslik">Randevunuz Alındı</span>
     </h2>
-    <p>Randevu talebiniz kaydedildi. WhatsApp üzerinden en kısa sürede sizinle iletişime geçeceğiz.</p>
+    <p id="sonuc-aciklama">Randevu talebiniz kaydedildi. WhatsApp üzerinden en kısa sürede sizinle iletişime geçeceğiz.</p>
     <div class="sonuc-ozet" id="sonuc-ozet"></div>
     <div id="depozito-wrap"></div>
     <p style="font-size:11px;color:var(--text-muted);margin-top:10px;line-height:1.6">Depozito, satın alım durumunda ürün fiyatından düşülür. Showroom alışverişlerinde iade kabul edilmez, değişim yapılabilir.</p>
@@ -1287,13 +1287,30 @@ function renderSonuc(veri){
     <div><b>Ürünler:</b> ${veri.urunler.map(u=>esc(u.urunAdi+' — '+u.beden+' beden '+u.renk)).join(', ')}</div>
     <div><b>Ad Soyad:</b> ${esc(veri.musteriAdi)}</div>
   `;
+  const baslikEl = document.getElementById('sonuc-baslik');
+  const aciklamaEl = document.getElementById('sonuc-aciklama');
   const wrap = document.getElementById('depozito-wrap');
+
   if(!depozitoAktif){
+    // Depozito bu mağazada aktif değil — randevu doğrudan "alındı" sayılır, ek adım yok.
+    baslikEl.textContent = 'Randevunuz Alındı';
+    aciklamaEl.textContent = 'Randevu talebiniz kaydedildi. WhatsApp üzerinden en kısa sürede sizinle iletişime geçeceğiz.';
     wrap.innerHTML = '';
-  } else if(depozitoLinki){
-    wrap.innerHTML = `<a class="btn block" target="_blank" rel="noopener" href="${esc(depozitoLinki)}">Depozito Öde</a>`;
+    return;
+  }
+
+  // Depozito aktifken randevu henüz KESİNLEŞMEDİ — müşteri yanlışlıkla "işim bitti" sanıp
+  // ödeme sayfasını es geçmesin diye başlık/metin bunu açıkça belirtiyor, ödeme sayfası da
+  // otomatik yeni sekmede açılıyor (engellenirse aşağıdaki buton yedek olarak kalıyor).
+  baslikEl.textContent = 'Randevu Talebiniz Alındı';
+  aciklamaEl.textContent = 'Randevunuzun kesinleşmesi için depozito ödemesi gerekiyor — ödeme yapılmadan randevunuz onaylanmaz.';
+
+  if(depozitoLinki){
+    wrap.innerHTML = `<a class="btn block" target="_blank" rel="noopener" href="${esc(depozitoLinki)}">Depozito Öde</a>
+      <p style="font-size:11px;color:var(--text-muted);margin-top:8px;line-height:1.5">Ödeme sayfası yeni sekmede açılmadıysa yukarıdaki butona tıklayın.</p>`;
+    try{ window.open(depozitoLinki, '_blank', 'noopener'); }catch(e){}
   } else {
-    wrap.innerHTML = `<p style="font-size:12px;color:var(--text-muted)">Depozito ödeme linki henüz tanımlanmadı, mağaza sizinle iletişime geçecek.</p>`;
+    wrap.innerHTML = `<p style="font-size:12px;color:var(--text-muted)">Depozito ödeme linki için mağaza sizinle WhatsApp üzerinden iletişime geçecek.</p>`;
   }
 }
 
