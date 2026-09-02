@@ -6,6 +6,7 @@
 <title>Randevu Al</title>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 :root{
   --bg:#FFFBE3;--surface:#ffffff;--surface2:#FFF6CE;--border:#EEE1AC;--border-strong:#DBC583;
   --text:#241111;--text-sec:#6b5346;--text-muted:#a3927e;
@@ -18,7 +19,13 @@
 }
 body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;line-height:1.5}
 .container{max-width:1400px;margin:0 auto;padding:24px}
-@media(max-width:640px){.container{padding:14px}}
+@media(max-width:640px){
+  .container{padding:14px}
+  /* Dokunma hedefleri mobilde en az 44px olsun diye (WCAG 2.2 / mobil dokunma standardı) —
+     masaüstünde fare imleci hassas olduğu için orijinal küçük boyutlar korunuyor. */
+  .kategori-chip,.renk-filtre-chip,.beden-pill,.saat-pill{min-height:44px}
+  .ud-kapat,.bt-modal-head button,.kvkk-modal-head button,.sepet-panel-head button{min-width:44px;min-height:44px}
+}
 .step-narrow{max-width:640px;margin:0 auto}
 h2.section-title{font-size:14px;font-weight:700;margin:0 0 10px}
 .hint{font-size:12px;color:var(--text-muted);margin-bottom:12px}
@@ -43,7 +50,7 @@ h2.section-title{font-size:14px;font-weight:700;margin:0 0 10px}
 .search-wrap{position:relative;margin-bottom:10px}
 .search-wrap svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text-muted);width:16px;height:16px;pointer-events:none}
 .search-wrap input{width:100%;height:40px;padding:0 12px 0 34px;border:1px solid var(--input-border);border-radius:var(--radius);background:var(--surface);color:var(--text);font-size:14px;font-family:inherit}
-.search-wrap input:focus{outline:none;border-color:var(--input-border-focus)}
+.search-wrap input:focus{border-color:var(--input-border-focus)}
 
 /* ── Kategori üst çubuğu + sol filtre/seçim kolonu ──── */
 .filtre-kutu{border:1px solid var(--border);border-radius:12px;padding:12px 14px;background:var(--surface)}
@@ -79,7 +86,7 @@ h2.section-title{font-size:14px;font-weight:700;margin:0 0 10px}
 .urun-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px}
 .urun-gorsel-wrap{position:relative;margin-bottom:8px}
 .urun-gorsel-wrap:not(.buyuk){cursor:pointer}
-.urun-card .urun-gorsel{width:100%;height:auto;max-height:70vh;border-radius:8px;background:var(--surface2);object-fit:contain;display:block}
+.urun-card .urun-gorsel{width:100%;aspect-ratio:3/4;border-radius:8px;background:var(--surface2);object-fit:cover;display:block}
 .gorsel-taraf-secim{position:absolute;left:6px;bottom:6px;display:flex;gap:5px}
 .taraf-thumb{width:36px;height:36px;border-radius:6px;overflow:hidden;border:2px solid rgba(255,255,255,.85);box-shadow:0 1px 4px rgba(0,0,0,.25);cursor:pointer;padding:0;background:var(--surface2)}
 .taraf-thumb img{width:100%;height:100%;object-fit:cover;display:block}
@@ -188,7 +195,7 @@ h2.section-title{font-size:14px;font-weight:700;margin:0 0 10px}
 .form-group{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
 .form-group label{font-size:12px;font-weight:500;color:var(--text-sec)}
 .form-group input{height:38px;padding:0 12px;border:1px solid var(--input-border);border-radius:var(--radius);background:var(--surface2);color:var(--text);font-size:14px;font-family:inherit}
-.form-group input:focus{outline:none;border-color:var(--input-border-focus)}
+.form-group input:focus{border-color:var(--input-border-focus)}
 @media(max-width:600px){.form-group input{font-size:16px}}
 
 .warn-box{margin-bottom:12px;padding:9px 12px;background:var(--warning-bg);color:var(--warning-text);border-radius:8px;font-size:12px;line-height:1.5}
