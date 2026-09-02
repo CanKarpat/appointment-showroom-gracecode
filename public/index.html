@@ -66,7 +66,7 @@ h2.section-title{font-size:14px;font-weight:700;margin:0 0 10px}
 .filtre-kutu{border:1px solid var(--border);border-radius:12px;padding:12px 14px;background:var(--surface)}
 .kategori-filtre.filtre-kutu{margin-bottom:16px}
 
-.urun-layout{display:grid;grid-template-columns:230px 1fr;gap:22px;align-items:start}
+.urun-layout{display:grid;grid-template-columns:1fr;gap:22px;align-items:start}
 .urun-sidebar{display:flex;flex-direction:column;gap:14px;position:sticky;top:14px;max-height:calc(100vh - 28px);overflow-y:auto}
 .urun-sidebar .renk-beden-filtre{margin-bottom:0}
 @media(max-width:860px){
@@ -290,10 +290,15 @@ h2.section-title{font-size:14px;font-weight:700;margin:0 0 10px}
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
         <input type="text" id="urun-arama" placeholder="Ürün adı veya SKU ara...">
       </div>
-      <div class="kategori-filtre filtre-kutu hidden" id="kategori-filtre"></div>
+      <!-- Kategori ve renk/beden filtreleri şimdilik kaldırıldı (UI'da gösterilmiyor) —
+           altındaki render fonksiyonları dokunulmadan bırakıldı, geri açmak için sadece
+           bu iki "hidden" sarmalayıcıyı kaldırmak yeterli. -->
+      <div class="hidden">
+        <div class="kategori-filtre filtre-kutu hidden" id="kategori-filtre"></div>
+      </div>
 
       <div class="urun-layout">
-        <aside class="urun-sidebar">
+        <aside class="urun-sidebar hidden">
           <div class="renk-beden-filtre filtre-kutu hidden" id="beden-filtre"></div>
           <div class="renk-beden-filtre filtre-kutu hidden" id="renk-filtre"></div>
         </aside>
