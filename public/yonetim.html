@@ -65,6 +65,7 @@ header .spacer{flex:1}
 
 .badge{font-size:10px;font-weight:600;padding:2px 7px;border-radius:9px;white-space:nowrap}
 .badge-bd{background:var(--warning-bg);color:var(--warning-text)}
+.badge-depozito{background:var(--success-bg);color:var(--success-text)}
 
 .urun-chip{display:inline-block;background:var(--surface2);border-radius:6px;padding:2px 7px;font-size:11px;margin:1px 3px 1px 0;white-space:nowrap}
 .urun-chip-sku{font-family:monospace;color:var(--text-muted)}
@@ -402,6 +403,7 @@ function renderRandevuCard(r){
       <span class="rc-tarih">${formatTarih(r.randevuTarihi)}</span>
       <input type="time" class="inline-time" value="${esc(r.randevuSaati||'')}" onchange="updSaat('${r.id}',this.value)">
       ${r.bdVarMi ? '<span class="badge badge-bd">BD</span>' : ''}
+      ${r.depozitoOdendi ? `<span class="badge badge-depozito" title="Sipariş no: ${esc(r.depozitoSiparisNo||'—')}">Depozito Ödendi ✓</span>` : ''}
       <div class="rc-spacer"></div>
       <select class="inline-sel" onchange="updDurum('${r.id}',this.value)">
         <option value="yeni"${r.durum==='yeni'?' selected':''}>Yeni</option>
@@ -486,6 +488,7 @@ function renderGunDetay(){
         <span class="gri-isim">${esc(r.musteriAdi)}</span>
         <span class="gri-urun">${(r.urunler||[]).length} ürün</span>
         ${r.bdVarMi?'<span class="badge badge-bd">BD</span>':''}
+        ${r.depozitoOdendi?'<span class="badge badge-depozito">Depozito Ödendi ✓</span>':''}
       </div>`).join('')
     : '<p style="color:var(--text-muted);font-size:12px">Bu günde randevu yok.</p>';
 }
