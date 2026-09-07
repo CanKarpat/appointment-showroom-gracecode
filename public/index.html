@@ -773,10 +773,12 @@ function urunKartInnerHtml(p, buyuk){
   const aktifTaraf = (aktifTarafByProduct[p.id]==='arka' && arkaVarMi) ? 'arka' : 'on';
   const gorsel = aktifTaraf==='arka' ? gorselVaryant.gorselUrlArka : (gorselVaryant.gorselUrl||'');
 
-  const renkRowHtml = renkler.length>1 ? `<div class="renk-row">
+  // Tek renkli ürünlerde de swatch gösteriliyor (sadece metin değil) — aksi halde renk-row
+  // yüksekliği ürüne göre değişip aynı sıradaki kartlarda beden/buton hizasını kaydırıyordu.
+  const renkRowHtml = renkler.length ? `<div class="renk-row">
       ${renkler.map(r=>`<button type="button" class="renk-swatch${r===aktifRenk?' active':''}" data-uid="${esc(p.id)}" data-renk="${esc(r)}" style="background:${CMAP[r]||'#bbb'}" title="${esc(r)}"></button>`).join('')}
       <span class="renk-adi">${esc(aktifRenk)}</span>
-    </div>` : (renkler.length===1 ? `<div class="renk-row"><span class="renk-adi">${esc(renkler[0])}</span></div>` : '');
+    </div>` : '';
 
   const gorselHtml = gorsel ? `<div class="urun-gorsel-wrap${buyuk?' buyuk':''}" data-uid="${esc(p.id)}">
       <img class="urun-gorsel" src="${esc(gorsel)}" alt="${esc(p.ad)}" loading="lazy">
