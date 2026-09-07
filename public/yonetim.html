@@ -113,7 +113,6 @@ header .spacer{flex:1}
 .gun-randevu-item{display:flex;flex-direction:column;gap:6px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px}
 .gun-randevu-item:last-child{border-bottom:none}
 .gun-randevu-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.gun-randevu-urunler{display:flex;flex-wrap:wrap;gap:5px}
 .gri-saat{font-weight:700;color:var(--accent-text);min-width:42px}
 .gri-isim{flex:1;color:var(--text)}
 
@@ -443,6 +442,14 @@ window.toggleUrunler = function(id){
   document.getElementById('rc-toggle-'+id).classList.toggle('open');
 };
 
+// Takvim gün detayındaki ürün akordeonu — liste görünümündeki toggleUrunler ile aynı mantık,
+// ama farklı ID öneki kullanıyor çünkü aynı randevu aynı anda hem liste hem takvim DOM'unda
+// (biri gizli) bulunabiliyor; id çakışmasın diye ayrı fonksiyon.
+window.toggleGunUrunler = function(id){
+  document.getElementById('gd-urunler-'+id).classList.toggle('show');
+  document.getElementById('gd-toggle-'+id).classList.toggle('open');
+};
+
 // ── Takvim görünümü ─────────────────────────────────
 window.navTakvim = function(delta){
   takvimMonth += delta;
@@ -487,6 +494,7 @@ function renderGunDetay(){
   baslikEl.textContent = `${formatTarih(takvimSeciliGun)} — ${gununRandevulari.length} randevu`;
   listeEl.innerHTML = gununRandevulari.length
     ? gununRandevulari.map(r=>{
+        const urunSayisi = (r.urunler||[]).length;
         const urunlerHtml = (r.urunler||[]).map(u=>`<span class="urun-chip">${esc(u.urunAdi)} — ${esc(u.beden)} ${esc(u.renk)}</span>`).join('');
         return `<div class="gun-randevu-item">
         <div class="gun-randevu-top">
@@ -496,7 +504,11 @@ function renderGunDetay(){
           ${r.depozitoOdendi ? '<span class="badge badge-depozito">Depozito Ödendi ✓</span>'
             : (r.durum!=='iptal' ? '<span class="badge badge-depozito-bekleniyor">Depozito Bekleniyor</span>' : '')}
         </div>
-        <div class="gun-randevu-urunler">${urunlerHtml}</div>
+        <button type="button" class="rc-urun-toggle" id="gd-toggle-${r.id}" onclick="toggleGunUrunler('${r.id}')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+          ${urunSayisi} ürün
+        </button>
+        <div class="rc-urunler" id="gd-urunler-${r.id}">${urunlerHtml}</div>
       </div>`;
       }).join('')
     : '<p style="color:var(--text-muted);font-size:12px">Bu günde randevu yok.</p>';
