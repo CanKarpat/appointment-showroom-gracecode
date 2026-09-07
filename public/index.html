@@ -479,7 +479,7 @@ h2.section-title{font-size:14px;font-weight:700;margin:0 0 10px}
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, collection, onSnapshot, doc, getDoc, getDocs, query, where, addDoc, updateDoc, writeBatch, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getFirestore, collection, onSnapshot, doc, getDoc, getDocs, query, where, addDoc, setDoc, updateDoc, writeBatch, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
 const app = initializeApp({
   apiKey:"AIzaSyBED4SOH13mpdpuGLHwG_wl6lhe1a4YNos",
@@ -1295,15 +1295,22 @@ document.getElementById('randevu-form').addEventListener('submit', async (e)=>{
     batch.set(slotRef, { tarih: selectedDateISO, saat: selectedSaat, olusturulmaTarihi: serverTimestamp() });
     const randevuRef = doc(collection(db,'randevular'));
     batch.set(randevuRef, veri);
-    // Kısa referans kodu: müşteri sekmeyi kapatır/cihaz değiştirirse depozito onayına geri
-    // dönebilsin diye — randevu_referanslari/{kod} -> randevuId, tek-ID-ile-okunur.
-    const kisaKod = kisaKodUret();
-    const referansRef = doc(db, 'randevu_referanslari', kisaKod);
-    batch.set(referansRef, { randevuId: randevuRef.id, olusturulmaTarihi: serverTimestamp() });
     await batch.commit();
     savedRandevuId = randevuRef.id;
-    savedKisaKod = kisaKod;
-    try{ localStorage.setItem('randevuKisaKod', kisaKod); }catch(e){}
+
+    // Kısa referans kodu (randevu_referanslari/{kod} -> randevuId), müşteri sekmeyi kapatır/
+    // cihaz değiştirirse depozito onayına geri dönebilsin diye — bilerek ASIL batch'in DIŞINDA,
+    // ayrı bir yazma: bu koleksiyonun kuralında bir sorun olursa (izin reddi vb.) randevunun
+    // kendisi hâlâ oluşsun, sadece referans kodu özelliği es geçilsin.
+    try{
+      const kisaKod = kisaKodUret();
+      await setDoc(doc(db, 'randevu_referanslari', kisaKod), { randevuId: randevuRef.id, olusturulmaTarihi: serverTimestamp() });
+      savedKisaKod = kisaKod;
+      try{ localStorage.setItem('randevuKisaKod', kisaKod); }catch(e){}
+    }catch(referansErr){
+      console.error('Referans kodu oluşturulamadı (randevu yine de kaydedildi):', referansErr);
+    }
+
     renderSonuc(veri);
   }catch(err){
     if(err.code === 'permission-denied'){
