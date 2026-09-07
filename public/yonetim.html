@@ -66,6 +66,7 @@ header .spacer{flex:1}
 .badge{font-size:10px;font-weight:600;padding:2px 7px;border-radius:9px;white-space:nowrap}
 .badge-bd{background:var(--warning-bg);color:var(--warning-text)}
 .badge-depozito{background:var(--success-bg);color:var(--success-text)}
+.badge-depozito-bekleniyor{background:var(--warning-bg);color:var(--warning-text)}
 
 .urun-chip{display:inline-block;background:var(--surface2);border-radius:6px;padding:2px 7px;font-size:11px;margin:1px 3px 1px 0;white-space:nowrap}
 .urun-chip-sku{font-family:monospace;color:var(--text-muted)}
@@ -109,11 +110,12 @@ header .spacer{flex:1}
 .acc-badge{font-size:9px;font-weight:700;color:#fff;background:var(--accent);border-radius:8px;min-width:15px;height:15px;padding:0 3px;display:flex;align-items:center;justify-content:center;line-height:1}
 .gun-detay-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;flex:1;min-width:260px}
 .gun-detay-box h2{font-size:14px;font-weight:700;margin-bottom:10px}
-.gun-randevu-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px}
+.gun-randevu-item{display:flex;flex-direction:column;gap:6px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px}
 .gun-randevu-item:last-child{border-bottom:none}
+.gun-randevu-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.gun-randevu-urunler{display:flex;flex-wrap:wrap;gap:5px}
 .gri-saat{font-weight:700;color:var(--accent-text);min-width:42px}
 .gri-isim{flex:1;color:var(--text)}
-.gri-urun{color:var(--text-muted);white-space:nowrap}
 
 .inline-time{border:1px solid var(--input-border);border-radius:5px;padding:3px 5px;font-size:12px;font-weight:600;background:transparent;color:var(--text);font-family:inherit}
 .inline-time:focus{outline:none;border-color:var(--input-border-focus)}
@@ -167,12 +169,12 @@ header .spacer{flex:1}
 
 <div class="container">
   <div class="view-tabs">
-    <button type="button" class="view-tab active" data-view="liste" onclick="switchView('liste')">Liste</button>
-    <button type="button" class="view-tab" data-view="takvim" onclick="switchView('takvim')">Takvim</button>
+    <button type="button" class="view-tab" data-view="liste" onclick="switchView('liste')">Liste</button>
+    <button type="button" class="view-tab active" data-view="takvim" onclick="switchView('takvim')">Takvim</button>
   </div>
 
   <!-- Liste görünümü -->
-  <div id="view-liste">
+  <div id="view-liste" class="hidden">
     <div class="toolbar">
       <div class="search-wrap">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
@@ -184,7 +186,7 @@ header .spacer{flex:1}
   </div>
 
   <!-- Takvim görünümü -->
-  <div id="view-takvim" class="hidden">
+  <div id="view-takvim">
     <div class="admin-cal-wrap">
       <div class="admin-cal-box">
         <div class="admin-cal-header">
@@ -345,7 +347,7 @@ const GUN_ADLARI = ['Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumarte
 
 let randevular = [];
 let search = '';
-let view = 'liste';
+let view = 'takvim'; // kontrol açısından takvim varsayılan/birincil görünüm
 let takvimYear, takvimMonth;   // takvim görünümünde o an gösterilen ay (takvimMonth: 0-11)
 let takvimSeciliGun = null;    // takvimde seçilen gün (ISO), detay panelinde gösterilir
 
@@ -403,7 +405,8 @@ function renderRandevuCard(r){
       <span class="rc-tarih">${formatTarih(r.randevuTarihi)}</span>
       <input type="time" class="inline-time" value="${esc(r.randevuSaati||'')}" onchange="updSaat('${r.id}',this.value)">
       ${r.bdVarMi ? '<span class="badge badge-bd">BD</span>' : ''}
-      ${r.depozitoOdendi ? `<span class="badge badge-depozito" title="Sipariş no: ${esc(r.depozitoSiparisNo||'—')}">Depozito Ödendi ✓</span>` : ''}
+      ${r.depozitoOdendi ? `<span class="badge badge-depozito" title="Sipariş no: ${esc(r.depozitoSiparisNo||'—')}">Depozito Ödendi ✓</span>`
+        : (r.durum!=='iptal' ? '<span class="badge badge-depozito-bekleniyor">Depozito Ödemesi Bekleniyor</span>' : '')}
       <div class="rc-spacer"></div>
       <select class="inline-sel" onchange="updDurum('${r.id}',this.value)">
         <option value="yeni"${r.durum==='yeni'?' selected':''}>Yeni</option>
@@ -483,13 +486,19 @@ function renderGunDetay(){
     .sort((a,b)=>(a.randevuSaati||'').localeCompare(b.randevuSaati||''));
   baslikEl.textContent = `${formatTarih(takvimSeciliGun)} — ${gununRandevulari.length} randevu`;
   listeEl.innerHTML = gununRandevulari.length
-    ? gununRandevulari.map(r=>`<div class="gun-randevu-item">
-        <span class="gri-saat">${esc(r.randevuSaati||'—')}</span>
-        <span class="gri-isim">${esc(r.musteriAdi)}</span>
-        <span class="gri-urun">${(r.urunler||[]).length} ürün</span>
-        ${r.bdVarMi?'<span class="badge badge-bd">BD</span>':''}
-        ${r.depozitoOdendi?'<span class="badge badge-depozito">Depozito Ödendi ✓</span>':''}
-      </div>`).join('')
+    ? gununRandevulari.map(r=>{
+        const urunlerHtml = (r.urunler||[]).map(u=>`<span class="urun-chip">${esc(u.urunAdi)} — ${esc(u.beden)} ${esc(u.renk)}</span>`).join('');
+        return `<div class="gun-randevu-item">
+        <div class="gun-randevu-top">
+          <span class="gri-saat">${esc(r.randevuSaati||'—')}</span>
+          <span class="gri-isim">${esc(r.musteriAdi)}</span>
+          ${r.bdVarMi?'<span class="badge badge-bd">BD</span>':''}
+          ${r.depozitoOdendi ? '<span class="badge badge-depozito">Depozito Ödendi ✓</span>'
+            : (r.durum!=='iptal' ? '<span class="badge badge-depozito-bekleniyor">Depozito Bekleniyor</span>' : '')}
+        </div>
+        <div class="gun-randevu-urunler">${urunlerHtml}</div>
+      </div>`;
+      }).join('')
     : '<p style="color:var(--text-muted);font-size:12px">Bu günde randevu yok.</p>';
 }
 
