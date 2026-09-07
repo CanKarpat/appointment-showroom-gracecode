@@ -438,7 +438,7 @@ function renderRandevuCard(r){
       </select>
     </div>
     <div class="rc-musteri">
-      <b>${esc(r.musteriAdi)}</b>
+      <b>${esc(r.musteriAdi) || '<span style="color:var(--text-muted);font-weight:500">İsimsiz — depozito onayı bekleniyor</span>'}</b>
       <span>${r.musteriTelefon ? `<a href="tel:${esc(r.musteriTelefon)}">${esc(r.musteriTelefon)}</a>` : '—'}</span>
       <span>${esc(r.musteriEposta)||'—'}</span>
     </div>
@@ -526,7 +526,7 @@ function renderGunDetay(){
         return `<div class="gun-randevu-item">
         <div class="gun-randevu-top">
           <span class="gri-saat">${esc(r.randevuSaati||'—')}</span>
-          <span class="gri-isim">${esc(r.musteriAdi)}</span>
+          <span class="gri-isim">${esc(r.musteriAdi) || 'İsimsiz — onay bekleniyor'}</span>
           ${r.bdVarMi?'<span class="badge badge-bd">BD</span>':''}
           ${r.depozitoOdendi ? '<span class="badge badge-depozito">Depozito Ödendi ✓</span>'
             : (r.durum!=='iptal' ? '<span class="badge badge-depozito-bekleniyor">Depozito Bekleniyor</span>' : '')}

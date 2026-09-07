@@ -304,7 +304,7 @@ h2.section-title{font-size:14px;font-weight:700;margin:0 0 10px}
         <div class="step-line" data-line="1"></div>
         <div class="step-dot" data-step="2"><div class="num">2</div><label>Tarih</label></div>
         <div class="step-line" data-line="2"></div>
-        <div class="step-dot" data-step="3"><div class="num">3</div><label>Bilgileriniz</label></div>
+        <div class="step-dot" data-step="3"><div class="num">3</div><label>Onay</label></div>
       </div>
     </div>
 
@@ -378,27 +378,14 @@ h2.section-title{font-size:14px;font-weight:700;margin:0 0 10px}
       </div>
     </div>
 
-    <!-- Adım 3: İletişim bilgileri -->
+    <!-- Adım 3: Onay -->
     <div class="step-panel hidden" id="step-3">
       <div class="step-narrow">
       <div class="ozet-card" id="ozet-tarih-urun"></div>
 
-      <h2 class="section-title">İletişim Bilgileriniz</h2>
+      <h2 class="section-title">Randevunuzu Onaylayın</h2>
+      <p class="hint">Adınız, telefonunuz ve e-postanızı burada tekrar yazmanıza gerek yok — depozito ödemesini İKAS'taki hesabınızla tamamladıktan sonra bu bilgiler oradan otomatik alınacak, farklı bir e-posta yazma/otomatik doldurma karışıklığı yaşanmaz.</p>
       <form id="randevu-form">
-        <div class="form-group">
-          <label>Ad Soyad</label>
-          <input type="text" id="musteri-adi" required autocomplete="name">
-        </div>
-        <div class="form-group">
-          <label>Telefon</label>
-          <input type="tel" id="musteri-telefon" required autocomplete="tel" inputmode="tel">
-          <span class="field-hint" id="tel-hint">Randevu onayınız bu numaradan WhatsApp üzerinden iletilecektir.</span>
-        </div>
-        <div class="form-group">
-          <label>E-posta</label>
-          <input type="email" id="musteri-eposta" required autocomplete="email" inputmode="email">
-        </div>
-
         <label class="kvkk-row">
           <input type="checkbox" id="kvkk-onay" required>
           <span>Kişisel verilerimin işlenmesine ve yurt dışına aktarılmasına onay veriyorum. <a onclick="showKvkkModal(event)">Aydınlatma Metni'ni oku.</a></span>
@@ -1223,43 +1210,9 @@ function validateForm(){
   if(!selectedDateISO) return 'Lütfen randevu tarihi seçin.';
   if(selectedDateISO < getMinDateISO()) return 'Seçtiğiniz tarih artık geçerli değil, lütfen tekrar seçin.';
   if(!selectedSaat) return 'Lütfen randevu saati seçin.';
-  if(!document.getElementById('musteri-adi').value.trim()) return 'Lütfen adınızı girin.';
-  if(!document.getElementById('musteri-telefon').value.trim()) return 'Lütfen telefon numaranızı girin.';
-  if(!document.getElementById('musteri-eposta').value.trim()) return 'Lütfen e-posta adresinizi girin.';
   if(!document.getElementById('kvkk-onay').checked) return 'Devam etmek için kişisel verilerinizin işlenmesini kabul etmeniz gerekiyor.';
   return null;
 }
-
-// Alan bazlı anlık doğrulama: kullanıcı bir alandan ayrıldığında (blur) kontrol edilir,
-// yazarken rahatsız edilmez — gönderirken hepsi zaten validateForm() ile tekrar kontrol edilir.
-(function wireInlineFieldValidation(){
-  const adi = document.getElementById('musteri-adi');
-  const tel = document.getElementById('musteri-telefon');
-  const telHint = document.getElementById('tel-hint');
-  const eposta = document.getElementById('musteri-eposta');
-  const epostaRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-  adi.addEventListener('blur', ()=> adi.classList.toggle('invalid', !adi.value.trim()));
-  adi.addEventListener('input', ()=> adi.classList.remove('invalid'));
-
-  tel.addEventListener('blur', ()=>{
-    const bos = !tel.value.trim();
-    tel.classList.toggle('invalid', bos);
-    telHint.textContent = bos ? 'Lütfen telefon numaranızı girin.' : 'Randevu onayınız bu numaradan WhatsApp üzerinden iletilecektir.';
-    telHint.classList.toggle('err', bos);
-  });
-  tel.addEventListener('input', ()=>{
-    tel.classList.remove('invalid');
-    telHint.textContent = 'Randevu onayınız bu numaradan WhatsApp üzerinden iletilecektir.';
-    telHint.classList.remove('err');
-  });
-
-  eposta.addEventListener('blur', ()=>{
-    const deger = eposta.value.trim();
-    eposta.classList.toggle('invalid', !deger || !epostaRegex.test(deger));
-  });
-  eposta.addEventListener('input', ()=> eposta.classList.remove('invalid'));
-})();
 
 document.getElementById('randevu-form').addEventListener('submit', async (e)=>{
   e.preventDefault();
@@ -1271,12 +1224,12 @@ document.getElementById('randevu-form').addEventListener('submit', async (e)=>{
   btn.disabled = true; btn.textContent = 'Kaydediliyor...';
 
   const bdVarMi = selected.some(s=>s.bd);
+  // Ad/telefon/e-posta bilerek BOŞ oluşturuluyor — müşteriden burada tekrar toplanmıyor,
+  // depozito ödemesini İKAS hesabıyla tamamladıktan sonra depozitoOnayla() bu alanları
+  // depozito_odemeleri kaydından (webhook'un yazdığı, doğrulanmış veri) dolduruyor. Böylece
+  // farklı bir e-posta yazma/otomatik doldurma karışıklığı yapısal olarak imkansız hale geliyor.
   const veri = {
-    musteriAdi: document.getElementById('musteri-adi').value.trim(),
-    musteriTelefon: document.getElementById('musteri-telefon').value.trim(),
-    // Küçük harfe çevrilip trim edilir — Stock-caka'nın webhook'u depozito_odemeleri'ne aynı
-    // normalizasyonla yazıyor, sipariş no. onayındaki e-posta eşleşmesi buna dayanıyor.
-    musteriEposta: document.getElementById('musteri-eposta').value.trim().toLowerCase(),
+    musteriAdi: '', musteriTelefon: '', musteriEposta: '',
     urunler: selected.map(s=>({...s})),
     bdVarMi,
     randevuTarihi: selectedDateISO,
@@ -1341,7 +1294,7 @@ function renderSonuc(veri){
   document.getElementById('sonuc-ozet').innerHTML = `
     <div><b>Tarih:</b> ${formatTR(veri.randevuTarihi)} — <b>Saat:</b> ${esc(veri.randevuSaati)}</div>
     <div><b>Ürünler:</b> ${veri.urunler.map(u=>esc(u.urunAdi+' — '+u.beden+' beden '+u.renk)).join(', ')}</div>
-    <div><b>Ad Soyad:</b> ${esc(veri.musteriAdi)}</div>
+    ${veri.musteriAdi ? `<div><b>Ad Soyad:</b> ${esc(veri.musteriAdi)}</div>` : ''}
   `;
   const baslikEl = document.getElementById('sonuc-baslik');
   const aciklamaEl = document.getElementById('sonuc-aciklama');
@@ -1407,19 +1360,33 @@ window.depozitoOnayla = async function(){
   btn.disabled = true; btn.textContent = 'Kontrol ediliyor...';
   input.disabled = true;
   try{
+    // Ad/telefon/e-posta müşteriden İSTENMİYOR — webhook'un bu siparişe ait yazdığı,
+    // doğrulanmış kayıttan (depozito_odemeleri) doğrudan alınıp randevuya işleniyor.
+    const odemeSnap = await getDoc(doc(db, 'depozito_odemeleri', girilenNumara));
+    if(!odemeSnap.exists() || !odemeSnap.data().odendi){
+      hataEl.textContent = 'Bu sipariş numarasıyla ödenmiş bir depozito bulunamadı. Numarayı kontrol edin.';
+      hataEl.classList.remove('hidden');
+      btn.disabled = false; btn.textContent = 'Onayla';
+      input.disabled = false;
+      return;
+    }
+    const odeme = odemeSnap.data();
     await updateDoc(doc(db,'randevular', savedRandevuId), {
       depozitoOdendi: true,
       depozitoOdemeTarihi: serverTimestamp(),
       depozitoSiparisNo: girilenNumara,
+      musteriAdi: odeme.musteriAdi || '',
+      musteriTelefon: odeme.musteriTelefon || '',
+      musteriEposta: odeme.musteriEposta || '',
     });
     document.getElementById('depozito-onay-kutu').innerHTML =
-      `<p style="margin-top:14px;padding:10px 12px;background:var(--success-bg);color:var(--success-text);border-radius:8px;font-size:13px;font-weight:600">✓ Depozito ödemeniz onaylandı.</p>`;
+      `<p style="margin-top:14px;padding:10px 12px;background:var(--success-bg);color:var(--success-text);border-radius:8px;font-size:13px;font-weight:600">✓ Depozito ödemeniz onaylandı${odeme.musteriAdi ? ', '+esc(odeme.musteriAdi) : ''}.</p>`;
     document.getElementById('sonuc-baslik').textContent = 'Randevunuz Onaylandı';
     document.getElementById('sonuc-aciklama').textContent = 'Depozito ödemeniz alındı, randevunuz onaylandı. Görüşmek üzere!';
   }catch(err){
     btn.disabled = false; btn.textContent = 'Onayla';
     input.disabled = false;
-    hataEl.textContent = 'Sipariş numaranızı kontrol edin ve ödemeyi randevu formundakiyle aynı e-posta ile yaptığınızdan emin olun.';
+    hataEl.textContent = 'Bir sorun oluştu, lütfen tekrar deneyin. Sorun devam ederse mağazamızla iletişime geçin.';
     hataEl.classList.remove('hidden');
   }
 };
