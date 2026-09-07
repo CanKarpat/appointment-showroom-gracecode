@@ -245,6 +245,15 @@ h2.section-title{font-size:14px;font-weight:700;margin:0 0 10px}
 .depozito-onay-row input:focus{border-color:var(--input-border-focus)}
 .depozito-onay-row .btn{flex-shrink:0;height:38px;padding:0 16px}
 
+.referans-kod-kutu{background:var(--accent-bg);color:var(--accent-text);border-radius:8px;padding:10px 12px;margin-bottom:12px}
+.referans-kod-kutu b{font-size:14px;letter-spacing:.5px}
+.referans-kod-kutu p{margin:4px 0 0;font-size:11px;color:var(--accent-text);opacity:.85}
+
+.referans-donus-wrap{max-width:640px;margin:0 auto 14px;text-align:right}
+.referans-donus-link{border:none;background:none;color:var(--accent-text);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;text-decoration:underline;padding:4px}
+.referans-kutu{margin-top:6px;padding:12px;border:1px solid var(--border);border-radius:10px;background:var(--surface);text-align:left}
+.referans-yeni-randevu-btn{display:block;margin:14px auto 0;border:none;background:none;color:var(--text-muted);font-size:11px;cursor:pointer;font-family:inherit;text-decoration:underline;padding:4px}
+
 .kvkk-row{display:flex;align-items:flex-start;gap:8px;margin:14px 0;font-size:12.5px;line-height:1.6;color:var(--text-sec)}
 .kvkk-row input{width:auto!important;flex-shrink:0;margin-top:2px}
 .kvkk-row a{color:var(--accent);font-weight:600;cursor:pointer;text-decoration:underline}
@@ -264,6 +273,17 @@ h2.section-title{font-size:14px;font-weight:700;margin:0 0 10px}
 <body>
 
 <div class="container">
+
+  <div class="referans-donus-wrap">
+    <button type="button" class="referans-donus-link" onclick="toggleReferansKutusu()">Randevunuz mu var? Onaylayın</button>
+    <div class="referans-kutu hidden" id="referans-kutu">
+      <div class="depozito-onay-row">
+        <input type="text" id="referans-kod-input" placeholder="Referans kodu (ör. AB12CD)" maxlength="6" style="text-transform:uppercase">
+        <button type="button" class="btn" id="referans-devam-btn" onclick="referansIleDevamEt(document.getElementById('referans-kod-input').value)">Devam Et</button>
+      </div>
+      <div id="referans-hata" class="hidden" style="margin-top:8px;padding:9px 12px;background:var(--danger-bg);color:var(--danger-text);border-radius:8px;font-size:12px;line-height:1.5"></div>
+    </div>
+  </div>
 
   <div id="loading-state" class="urun-grid" aria-hidden="true" aria-label="Ürünler yükleniyor">
     <div class="skeleton-card"><div class="skeleton-img"></div><div class="skeleton-line" style="width:75%"></div><div class="skeleton-line" style="width:45%"></div></div>
@@ -481,6 +501,7 @@ let selected = [];         // seçilen varyantlar: {urunId,urunAdi,urunKodu,sku,
 let depozitoLinki = '';
 let depozitoAktif = true;
 let savedRandevuId = '';   // batch.commit() başarılı olunca set edilir — depozito sipariş no. onayında kullanılır
+let savedKisaKod = '';     // yeni oluşturulan randevunun referans kodu — sadece bu oturumda gösterilir, dönen müşteride boş kalır
 let kvkkMetni = '';        // config/randevuAyarlari.kvkkMetni — Aydınlatma Metni popup içeriği
 let step = 1;               // 1=ürünler, 2=tarih, 3=iletişim
 let calViewYear, calViewMonth;  // takvimde o an gösterilen ay (calViewMonth: 0-11)
@@ -507,6 +528,14 @@ function toISO(d){ const tz=d.getTimezoneOffset(); return new Date(d.getTime()-t
 function todayISO(){ return toISO(new Date()); }
 function addDaysISO(n){ const d=new Date(); d.setDate(d.getDate()+n); return toISO(d); }
 function selKey(urunId, sku){ return urunId+'::'+sku; }
+// 0/O, 1/I gibi karışabilecek karakterler bilerek çıkarılmış — müşteri kodu elle okuyup
+// girerken hata yapma ihtimali düşsün diye.
+function kisaKodUret(){
+  const alfabe = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let kod = '';
+  for(let i=0;i<6;i++) kod += alfabe[Math.floor(Math.random()*alfabe.length)];
+  return kod;
+}
 function formatTR(iso){ const [y,m,d] = iso.split('-'); return `${d}.${m}.${y}`; }
 function getMinDateISO(){ return selected.some(s=>s.bd) ? addDaysISO(3) : todayISO(); }
 
@@ -1263,8 +1292,15 @@ document.getElementById('randevu-form').addEventListener('submit', async (e)=>{
     batch.set(slotRef, { tarih: selectedDateISO, saat: selectedSaat, olusturulmaTarihi: serverTimestamp() });
     const randevuRef = doc(collection(db,'randevular'));
     batch.set(randevuRef, veri);
+    // Kısa referans kodu: müşteri sekmeyi kapatır/cihaz değiştirirse depozito onayına geri
+    // dönebilsin diye — randevu_referanslari/{kod} -> randevuId, tek-ID-ile-okunur.
+    const kisaKod = kisaKodUret();
+    const referansRef = doc(db, 'randevu_referanslari', kisaKod);
+    batch.set(referansRef, { randevuId: randevuRef.id, olusturulmaTarihi: serverTimestamp() });
     await batch.commit();
     savedRandevuId = randevuRef.id;
+    savedKisaKod = kisaKod;
+    try{ localStorage.setItem('randevuKisaKod', kisaKod); }catch(e){}
     renderSonuc(veri);
   }catch(err){
     if(err.code === 'permission-denied'){
@@ -1318,13 +1354,24 @@ function renderSonuc(veri){
       <p style="font-size:11px;color:var(--text-muted);margin-top:8px;line-height:1.5">Ödeme sayfası yeni sekmede açılmadıysa yukarıdaki butona tıklayın.</p>`
     : `<p style="font-size:12px;color:var(--text-muted)">Depozito ödeme linki için mağaza sizinle WhatsApp üzerinden iletişime geçecek.</p>`;
 
-  // Ödeme, statik bir İKAS sepet linki üzerinden yapıldığı için sistem ödemeyi kendiliğinden
-  // göremiyor — müşteri ödeme sonrası İKAS'ın verdiği sipariş numarasını burada girip
-  // onaylıyor. Firestore kuralı bu numarayı depozito_odemeleri koleksiyonunda arayıp hem
-  // odendi:true hem de e-posta eşleşmesini istiyor (bkz. Stock-caka webhook entegrasyonu),
-  // biri rastgele/başkasının numarasını denerse "permission-denied" ile reddedilir.
-  wrap.innerHTML = odemeButonuHtml + `
-    <div class="depozito-onay-kutu" id="depozito-onay-kutu">
+  // Referans kodu sadece bu oturumda YENİ oluşturulan randevuda gösterilir (savedKisaKod
+  // dönen müşteri akışında bilerek boş bırakılıyor — kendi kodunu tekrar göstermeye gerek yok).
+  const referansKoduHtml = savedKisaKod ? `<div class="referans-kod-kutu">
+      <b>Referans Kodunuz: ${esc(savedKisaKod)}</b>
+      <p>Bu kodu not alın — ödemeyi daha sonra onaylamak isterseniz gerekecek.</p>
+    </div>` : '';
+
+  wrap.innerHTML = referansKoduHtml + odemeButonuHtml + depozitoOnayKutusuHtml();
+  if(depozitoLinki){
+    try{ window.open(depozitoLinki, '_blank', 'noopener'); }catch(e){}
+  }
+}
+
+// randevuların doğrulanması bağlamsız (fiziksel/hazır durum yok) — müşteri anlık olarak
+// randevu oluşturmadıysa da bu form hem az önceki gönderimden (renderSonuc) hem de referans
+// koduyla geri dönüşten (girisReferansSonucGoster) AYNI şekilde kullanılıyor.
+function depozitoOnayKutusuHtml(){
+  return `<div class="depozito-onay-kutu" id="depozito-onay-kutu">
       <p class="hint" style="margin:14px 0 6px">Ödemeyi tamamladıktan sonra İKAS'ın size gösterdiği sipariş numarasını girip onaylayın:</p>
       <div class="depozito-onay-row">
         <input type="text" id="siparis-no-input" placeholder="Sipariş numarası (ör. 1157)" inputmode="numeric">
@@ -1332,9 +1379,6 @@ function renderSonuc(veri){
       </div>
       <div id="depozito-onay-hata" class="hidden" style="margin-top:8px;padding:9px 12px;background:var(--danger-bg);color:var(--danger-text);border-radius:8px;font-size:12px;line-height:1.5"></div>
     </div>`;
-  if(depozitoLinki){
-    try{ window.open(depozitoLinki, '_blank', 'noopener'); }catch(e){}
-  }
 }
 
 window.depozitoOnayla = async function(){
@@ -1367,6 +1411,77 @@ window.depozitoOnayla = async function(){
     hataEl.classList.remove('hidden');
   }
 };
+
+// ── Referans koduyla geri dönüş ─────────────────────
+window.toggleReferansKutusu = function(){
+  document.getElementById('referans-kutu').classList.toggle('hidden');
+};
+window.closeReferansKutusu = function(){
+  document.getElementById('referans-kutu').classList.add('hidden');
+};
+
+// Randevu detaylarını (tarih/ürün/isim) YENİDEN GÖSTERMİYOR çünkü randevular koleksiyonunda
+// müşteriye açık bir "get" izni yok (sadece create + dar kapsamlı depozito-onay update'i var) —
+// referans kodu sadece savedRandevuId'yi çözüp aynı sipariş-no. onay formunu göstermeye yarıyor.
+function girisReferansSonucGoster(){
+  document.getElementById('loading-state').classList.add('hidden');
+  document.getElementById('empty-state').classList.add('hidden');
+  document.getElementById('wizard').classList.add('hidden');
+  document.getElementById('sonuc-view').classList.remove('hidden');
+  document.getElementById('sonuc-ozet').innerHTML = '';
+  document.getElementById('sonuc-baslik').textContent = 'Depozito Ödemenizi Onaylayın';
+  document.getElementById('sonuc-aciklama').textContent = 'Ödemeyi tamamladıysanız İKAS\'ın verdiği sipariş numarasını girip onaylayabilirsiniz.';
+  const wrap = document.getElementById('depozito-wrap');
+  const odemeButonuHtml = depozitoLinki
+    ? `<a class="btn block" target="_blank" rel="noopener" href="${esc(depozitoLinki)}">Depozito Öde</a>`
+    : '';
+  wrap.innerHTML = odemeButonuHtml + depozitoOnayKutusuHtml() +
+    `<button type="button" class="referans-yeni-randevu-btn" onclick="yeniRandevuBaslat()">Bunun yerine yeni randevu oluşturmak istiyorum</button>`;
+}
+
+window.yeniRandevuBaslat = function(){
+  try{ localStorage.removeItem('randevuKisaKod'); }catch(e){}
+  location.reload();
+};
+
+window.referansIleDevamEt = async function(kisaKodInput){
+  const hataEl = document.getElementById('referans-hata');
+  hataEl.classList.add('hidden');
+  const kod = String(kisaKodInput||'').trim().toUpperCase();
+  if(!kod){
+    hataEl.textContent = 'Lütfen referans kodunuzu girin.';
+    hataEl.classList.remove('hidden');
+    return;
+  }
+  const btn = document.getElementById('referans-devam-btn');
+  if(btn){ btn.disabled = true; btn.textContent = 'Aranıyor...'; }
+  try{
+    const snap = await getDoc(doc(db,'randevu_referanslari', kod));
+    if(!snap.exists()){
+      hataEl.textContent = 'Bu referans koduyla bir randevu bulunamadı, kodu kontrol edin.';
+      hataEl.classList.remove('hidden');
+      return;
+    }
+    savedRandevuId = snap.data().randevuId;
+    savedKisaKod = ''; // dönen müşteriye kendi kodunu tekrar göstermeye gerek yok
+    closeReferansKutusu();
+    girisReferansSonucGoster();
+  }catch(err){
+    hataEl.textContent = 'Bir sorun oluştu, lütfen tekrar deneyin.';
+    hataEl.classList.remove('hidden');
+  }finally{
+    if(btn){ btn.disabled = false; btn.textContent = 'Devam Et'; }
+  }
+};
+
+// Sayfa ilk açıldığında daha önce bu cihazdan oluşturulmuş bir randevunun referans kodu
+// varsa (localStorage), kutuyu otomatik doldurup açıyoruz — müşteri hiçbir şey yazmadan
+// devam edebilsin diye. "Yeni randevu oluştur" ile bu otomatik akıştan çıkılabiliyor.
+(function otomatikReferansDenetimi(){
+  let kod = '';
+  try{ kod = localStorage.getItem('randevuKisaKod') || ''; }catch(e){}
+  if(kod) referansIleDevamEt(kod);
+})();
 
 goToStep(1);
 </script>
