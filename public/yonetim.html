@@ -295,6 +295,30 @@ header .spacer{flex:1}
   </div>
 </div>
 
+<!-- Depozito onay modalı -->
+<div class="modal-bg hidden" id="depozito-onay-modal">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header">
+      <h2>Depozito Ödemesi</h2>
+      <button class="icon-btn" onclick="closeDepozitoOnayModal()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Müşterinin e-postası uyuşmazlığı vb. sebeple kendi kendine onaylayamadığı durumlarda, WhatsApp'tan ödemeyi teyit ettikten sonra buradan elle işaretleyebilirsiniz.</p>
+      <div class="form-group">
+        <label>İKAS Sipariş Numarası</label>
+        <input type="text" id="depozito-onay-siparis-no" placeholder="Örn: 1157">
+      </div>
+      <div id="depozito-onay-result" style="margin-top:10px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn ghost" id="depozito-onay-kaldir-btn" onclick="depozitoOnayiKaldir()">Ödendi İşaretini Kaldır</button>
+      <button class="btn primary" id="depozito-onay-save-btn" onclick="saveDepozitoOnay()">Ödendi Olarak İşaretle</button>
+    </div>
+  </div>
+</div>
+
 <script>
 (function(){
   var saved = localStorage.getItem('theme');
@@ -426,6 +450,9 @@ function renderRandevuCard(r){
     <div class="rc-bottom">
       <span>Oluşturuldu: ${formatZaman(r.olusturulmaTarihi)}</span>
       <div class="rc-actions">
+        <button class="icon-btn${r.depozitoOdendi?' has-note':''}" title="${r.depozitoOdendi?'Depozito ödendi — görüntüle/düzenle':'Depozito ödemesini elle işaretle'}" onclick="showDepozitoOnayModal('${r.id}')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+        </button>
         <button class="icon-btn${r.not?' has-note':''}" title="${r.not?'Not var — görüntüle/düzenle':'Not ekle'}" onclick="showNotModal('${r.id}')">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
         </button>
@@ -564,6 +591,53 @@ window.saveNot = async function(){
     return;
   }
   btn.disabled = false; btn.textContent = eskiMetin;
+};
+
+// ── Depozito onay modalı (müşteri kendi kendine onaylayamazsa — ör. e-posta uyuşmazlığı —
+// personel WhatsApp'tan teyit ettikten sonra buradan elle işaretler) ────
+let depozitoOnayRandevuId = null;
+window.showDepozitoOnayModal = function(id){
+  const r = randevular.find(x=>x.id===id);
+  depozitoOnayRandevuId = id;
+  document.getElementById('depozito-onay-siparis-no').value = r?.depozitoSiparisNo || '';
+  document.getElementById('depozito-onay-result').innerHTML = '';
+  document.getElementById('depozito-onay-kaldir-btn').classList.toggle('hidden', !r?.depozitoOdendi);
+  document.getElementById('depozito-onay-modal').classList.remove('hidden');
+};
+window.closeDepozitoOnayModal = () => document.getElementById('depozito-onay-modal').classList.add('hidden');
+window.saveDepozitoOnay = async function(){
+  const btn = document.getElementById('depozito-onay-save-btn');
+  const resultEl = document.getElementById('depozito-onay-result');
+  const siparisNo = document.getElementById('depozito-onay-siparis-no').value.trim();
+  if(!siparisNo){
+    resultEl.innerHTML = `<div style="background:var(--danger-bg);color:var(--danger-text);border-radius:8px;padding:8px 10px">Lütfen sipariş numarasını girin.</div>`;
+    return;
+  }
+  const eskiMetin = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Kaydediliyor...';
+  resultEl.innerHTML = '';
+  try{
+    await updateDoc(doc(db,'randevular',depozitoOnayRandevuId), {
+      depozitoOdendi: true,
+      depozitoSiparisNo: siparisNo,
+      depozitoOdemeTarihi: serverTimestamp(),
+      guncellemeTarihi: serverTimestamp(),
+    });
+    closeDepozitoOnayModal();
+  }catch(err){
+    resultEl.innerHTML = `<div style="background:var(--danger-bg);color:var(--danger-text);border-radius:8px;padding:8px 10px">Kaydedilemedi: ${esc(err.message)}</div>`;
+    btn.disabled = false; btn.textContent = eskiMetin;
+    return;
+  }
+  btn.disabled = false; btn.textContent = eskiMetin;
+};
+window.depozitoOnayiKaldir = async function(){
+  if(!confirm('Depozito ödendi işaretini kaldırmak istediğine emin misin?')) return;
+  await updateDoc(doc(db,'randevular',depozitoOnayRandevuId), {
+    depozitoOdendi: false,
+    guncellemeTarihi: serverTimestamp(),
+  });
+  closeDepozitoOnayModal();
 };
 
 // ── Ayarlar modalı ────────────────────────────────
