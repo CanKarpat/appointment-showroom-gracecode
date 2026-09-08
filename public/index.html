@@ -384,8 +384,14 @@ h2.section-title{font-size:14px;font-weight:700;margin:0 0 10px}
       <div class="ozet-card" id="ozet-tarih-urun"></div>
 
       <h2 class="section-title">Randevunuzu Onaylayın</h2>
-      <p class="hint">Adınız, telefonunuz ve e-postanızı burada tekrar yazmanıza gerek yok — depozito ödemesini İKAS'taki hesabınızla tamamladıktan sonra bu bilgiler oradan otomatik alınacak, farklı bir e-posta yazma/otomatik doldurma karışıklığı yaşanmaz.</p>
+      <p class="hint">Depozito ödemesini İKAS'ta hangi hesapla/e-postayla yapacaksanız, aynısını aşağıya yazın — adınız ve telefonunuz ise ödeme sonrası bu bilgiden otomatik alınacak, tekrar yazmanıza gerek yok.</p>
       <form id="randevu-form">
+        <div class="form-group">
+          <label>E-posta</label>
+          <input type="email" id="musteri-eposta" required autocomplete="email" inputmode="email">
+          <span class="field-hint">Depozito ödemesini İKAS'ta bu e-postayla yapmanız gerekir, aksi halde randevunuzu onaylayamazsınız.</span>
+        </div>
+
         <label class="kvkk-row">
           <input type="checkbox" id="kvkk-onay" required>
           <span>Kişisel verilerimin işlenmesine ve yurt dışına aktarılmasına onay veriyorum. <a onclick="showKvkkModal(event)">Aydınlatma Metni'ni oku.</a></span>
@@ -1210,6 +1216,7 @@ function validateForm(){
   if(!selectedDateISO) return 'Lütfen randevu tarihi seçin.';
   if(selectedDateISO < getMinDateISO()) return 'Seçtiğiniz tarih artık geçerli değil, lütfen tekrar seçin.';
   if(!selectedSaat) return 'Lütfen randevu saati seçin.';
+  if(!document.getElementById('musteri-eposta').value.trim()) return 'Lütfen e-posta adresinizi girin.';
   if(!document.getElementById('kvkk-onay').checked) return 'Devam etmek için kişisel verilerinizin işlenmesini kabul etmeniz gerekiyor.';
   return null;
 }
@@ -1224,12 +1231,15 @@ document.getElementById('randevu-form').addEventListener('submit', async (e)=>{
   btn.disabled = true; btn.textContent = 'Kaydediliyor...';
 
   const bdVarMi = selected.some(s=>s.bd);
-  // Ad/telefon/e-posta bilerek BOŞ oluşturuluyor — müşteriden burada tekrar toplanmıyor,
-  // depozito ödemesini İKAS hesabıyla tamamladıktan sonra depozitoOnayla() bu alanları
-  // depozito_odemeleri kaydından (webhook'un yazdığı, doğrulanmış veri) dolduruyor. Böylece
-  // farklı bir e-posta yazma/otomatik doldurma karışıklığı yapısal olarak imkansız hale geliyor.
+  // Ad/telefon bilerek BOŞ oluşturuluyor — depozito ödemesi sonrası depozitoOnayla() bu
+  // alanları depozito_odemeleri kaydından (webhook'un yazdığı, doğrulanmış veri) dolduruyor.
+  // E-posta ise burada müşteriden alınıyor (aşağıda normalize edilir) — Firestore kuralı
+  // depozito onayı sırasında bu e-postanın ödeme kaydındaki e-postayla eşleştiğini doğruluyor.
   const veri = {
-    musteriAdi: '', musteriTelefon: '', musteriEposta: '',
+    musteriAdi: '', musteriTelefon: '',
+    // Küçük harfe çevrilip trim edilir — Stock-caka'nın webhook'u depozito_odemeleri'ne aynı
+    // normalizasyonla yazıyor, depozito onayındaki e-posta eşleşmesi buna dayanıyor.
+    musteriEposta: document.getElementById('musteri-eposta').value.trim().toLowerCase(),
     urunler: selected.map(s=>({...s})),
     bdVarMi,
     randevuTarihi: selectedDateISO,
@@ -1360,8 +1370,10 @@ window.depozitoOnayla = async function(){
   btn.disabled = true; btn.textContent = 'Kontrol ediliyor...';
   input.disabled = true;
   try{
-    // Ad/telefon/e-posta müşteriden İSTENMİYOR — webhook'un bu siparişe ait yazdığı,
-    // doğrulanmış kayıttan (depozito_odemeleri) doğrudan alınıp randevuya işleniyor.
+    // Ad/telefon müşteriden İSTENMİYOR — webhook'un bu siparişe ait yazdığı, doğrulanmış
+    // kayıttan (depozito_odemeleri) doğrudan alınıp randevuya işleniyor. E-posta burada
+    // YAZILMIYOR — randevu oluşturulurken zaten kaydedildi, Firestore kuralı o mevcut değerin
+    // bu ödeme kaydındaki e-postayla eşleştiğini kendisi doğruluyor.
     const odemeSnap = await getDoc(doc(db, 'depozito_odemeleri', girilenNumara));
     if(!odemeSnap.exists() || !odemeSnap.data().odendi){
       hataEl.textContent = 'Bu sipariş numarasıyla ödenmiş bir depozito bulunamadı. Numarayı kontrol edin.';
@@ -1377,7 +1389,6 @@ window.depozitoOnayla = async function(){
       depozitoSiparisNo: girilenNumara,
       musteriAdi: odeme.musteriAdi || '',
       musteriTelefon: odeme.musteriTelefon || '',
-      musteriEposta: odeme.musteriEposta || '',
     });
     document.getElementById('depozito-onay-kutu').innerHTML =
       `<p style="margin-top:14px;padding:10px 12px;background:var(--success-bg);color:var(--success-text);border-radius:8px;font-size:13px;font-weight:600">✓ Depozito ödemeniz onaylandı${odeme.musteriAdi ? ', '+esc(odeme.musteriAdi) : ''}.</p>`;
@@ -1386,7 +1397,9 @@ window.depozitoOnayla = async function(){
   }catch(err){
     btn.disabled = false; btn.textContent = 'Onayla';
     input.disabled = false;
-    hataEl.textContent = 'Bir sorun oluştu, lütfen tekrar deneyin. Sorun devam ederse mağazamızla iletişime geçin.';
+    hataEl.textContent = err.code === 'permission-denied'
+      ? 'Sipariş numaranızı kontrol edin ve depozitoyu randevu formuna yazdığınızla aynı e-posta ile ödediğinizden emin olun.'
+      : 'Bir sorun oluştu, lütfen tekrar deneyin. Sorun devam ederse mağazamızla iletişime geçin.';
     hataEl.classList.remove('hidden');
   }
 };
