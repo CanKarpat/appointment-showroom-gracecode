@@ -179,6 +179,10 @@ header .spacer{flex:1}
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
         <input type="text" id="search" placeholder="Müşteri adı veya telefon ara...">
       </div>
+      <button type="button" class="btn" onclick="disaAktarCSV()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Dışa Aktar
+      </button>
     </div>
     <div class="randevu-list" id="randevu-list"></div>
     <div class="empty-state hidden" id="empty-state">Henüz randevu yok.</div>
@@ -410,15 +414,58 @@ function render(){
 }
 
 // ── Liste görünümü (kart) ──────────────────────────
-function renderListe(){
-  const filtered = randevular.filter(r=>{
+function filtrelenmisRandevular(){
+  return randevular.filter(r=>{
     if(!search) return true;
     return (r.musteriAdi||'').toLowerCase().includes(search) || (r.musteriTelefon||'').toLowerCase().includes(search);
   });
+}
+
+function renderListe(){
+  const filtered = filtrelenmisRandevular();
   const listEl = document.getElementById('randevu-list');
   document.getElementById('empty-state').classList.toggle('hidden', filtered.length>0);
   listEl.innerHTML = filtered.map(renderRandevuCard).join('');
 }
+
+// ── CSV dışa aktarma (arama kutusundaki mevcut filtreyi baz alır) ──
+window.disaAktarCSV = function(){
+  const basliklar = ['Müşteri Adı','Telefon','E-posta','Ürünler','Randevu Tarihi','Randevu Saati','Durum','BD Var mı','Depozito Ödendi mi','Depozito Ödeme Tarihi','Depozito Sipariş No','Oluşturulma Tarihi'];
+  const durumEtiket = { yeni:'Yeni', onaylandi:'Onaylandı', iptal:'İptal' };
+  // Türkçe Excel virgülü ondalık ayracı olarak kullandığı için CSV'de ; ayraç olarak tercih edildi.
+  const csvHucre = (deger) => {
+    const s = String(deger==null ? '' : deger);
+    return /[;"\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s;
+  };
+  const satirlar = filtrelenmisRandevular().map(r=>{
+    const urunlerMetni = (r.urunler||[]).map(u=>`${u.urunAdi} — ${u.beden} ${u.renk}`).join(' | ');
+    return [
+      r.musteriAdi || '',
+      r.musteriTelefon || '',
+      r.musteriEposta || '',
+      urunlerMetni,
+      formatTarih(r.randevuTarihi),
+      r.randevuSaati || '',
+      durumEtiket[r.durum] || r.durum || '',
+      r.bdVarMi ? 'Evet' : 'Hayır',
+      r.depozitoOdendi ? 'Evet' : 'Hayır',
+      r.depozitoOdemeTarihi ? formatZaman(r.depozitoOdemeTarihi) : '',
+      r.depozitoSiparisNo || '',
+      formatZaman(r.olusturulmaTarihi),
+    ].map(csvHucre).join(';');
+  });
+  // Başına BOM eklenir — aksi halde Excel Türkçe karakterleri (ı, ş, ğ vb.) bozuk gösterir.
+  const csv = '\uFEFF' + [basliklar.join(';'), ...satirlar].join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `randevular_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
 
 function renderRandevuCard(r){
   const urunSayisi = (r.urunler||[]).length;
