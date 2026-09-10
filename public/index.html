@@ -1319,14 +1319,15 @@ function renderSonuc(veri){
   }
 
   // Depozito aktifken randevu henüz KESİNLEŞMEDİ — müşteri yanlışlıkla "işim bitti" sanıp
-  // ödeme sayfasını es geçmesin diye başlık/metin bunu açıkça belirtiyor, ödeme sayfası da
-  // otomatik yeni sekmede açılıyor (engellenirse aşağıdaki buton yedek olarak kalıyor).
+  // ödeme sayfasını es geçmesin diye başlık/metin bunu açıkça belirtiyor. Ödeme sayfasına
+  // OTOMATİK yönlendirme yok — müşteri bu ekrandaki bilgilendirme metnini ve referans kodunu
+  // görmeden/not almadan aniden ödeme sayfasına atılmasın diye, "Depozito Öde" butonuna
+  // kendi isteğiyle tıklaması bekleniyor.
   baslikEl.textContent = 'Randevu Talebiniz Alındı';
   aciklamaEl.textContent = 'Randevunuzun kesinleşmesi için depozito ödemesi gerekiyor — ödeme yapılmadan randevunuz onaylanmaz.';
 
   const odemeButonuHtml = depozitoLinki
-    ? `<a class="btn block" target="_blank" rel="noopener" href="${esc(depozitoLinki)}">Depozito Öde</a>
-      <p style="font-size:11px;color:var(--text-muted);margin-top:8px;line-height:1.5">Ödeme sayfası yeni sekmede açılmadıysa yukarıdaki butona tıklayın.</p>`
+    ? `<a class="btn block" target="_blank" rel="noopener" href="${esc(depozitoLinki)}">Depozito Öde</a>`
     : `<p style="font-size:12px;color:var(--text-muted)">Depozito ödeme linki için mağaza sizinle WhatsApp üzerinden iletişime geçecek.</p>`;
 
   // Referans kodu sadece bu oturumda YENİ oluşturulan randevuda gösterilir (savedKisaKod
@@ -1336,10 +1337,10 @@ function renderSonuc(veri){
       <p>Bu kodu not alın — ödemeyi daha sonra onaylamak isterseniz gerekecek.</p>
     </div>` : '';
 
+  // Otomatik yönlendirme bilerek YOK — müşteri bilgilendirme metnini ve referans kodunu
+  // görmeden/not almadan ödeme sayfasına atılmasın diye, "Depozito Öde" butonuna kendi
+  // isteğiyle tıklaması bekleniyor.
   wrap.innerHTML = referansKoduHtml + odemeButonuHtml + depozitoOnayKutusuHtml();
-  if(depozitoLinki){
-    try{ window.open(depozitoLinki, '_blank', 'noopener'); }catch(e){}
-  }
 }
 
 // randevuların doğrulanması bağlamsız (fiziksel/hazır durum yok) — müşteri anlık olarak
