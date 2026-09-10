@@ -232,6 +232,14 @@ h2.section-title{font-size:14px;font-weight:700;margin:0 0 10px}
 .btn:hover{opacity:.92}
 .btn:disabled{opacity:.55;cursor:default}
 .btn.block{width:100%}
+/* Otomatik yönlendirme kaldırıldığı için müşteri butonu gözden kaçırmasın diye hafif bir
+   "nefes alma" animasyonu — prefers-reduced-motion tercihinde genel kuralla otomatik kapanıyor. */
+.depozito-cta{animation:depozito-nefes 2s ease-in-out infinite}
+.depozito-cta:hover{animation-play-state:paused}
+@keyframes depozito-nefes{
+  0%,100%{box-shadow:0 0 0 0 rgba(166,40,42,.45)}
+  50%{box-shadow:0 0 0 9px rgba(166,40,42,0)}
+}
 .btn.ghost{background:var(--surface2);color:var(--accent-text);border:1px solid var(--border-strong);font-weight:700}
 .btn-row{display:flex;gap:8px;margin-top:6px}
 .btn-row .btn.ghost{flex:0 0 auto;width:auto;min-width:96px;padding:0 16px}
@@ -1327,7 +1335,7 @@ function renderSonuc(veri){
   aciklamaEl.textContent = 'Randevunuzun kesinleşmesi için depozito ödemesi gerekiyor — ödeme yapılmadan randevunuz onaylanmaz.';
 
   const odemeButonuHtml = depozitoLinki
-    ? `<a class="btn block" target="_blank" rel="noopener" href="${esc(depozitoLinki)}">Depozito Öde</a>`
+    ? `<a class="btn block depozito-cta" target="_blank" rel="noopener" href="${esc(depozitoLinki)}">Depozito Öde</a>`
     : `<p style="font-size:12px;color:var(--text-muted)">Depozito ödeme linki için mağaza sizinle WhatsApp üzerinden iletişime geçecek.</p>`;
 
   // Referans kodu sadece bu oturumda YENİ oluşturulan randevuda gösterilir (savedKisaKod
@@ -1426,7 +1434,7 @@ function girisReferansSonucGoster(){
   document.getElementById('sonuc-aciklama').textContent = 'Ödemeyi tamamladıysanız İKAS\'ın verdiği sipariş numarasını girip onaylayabilirsiniz.';
   const wrap = document.getElementById('depozito-wrap');
   const odemeButonuHtml = depozitoLinki
-    ? `<a class="btn block" target="_blank" rel="noopener" href="${esc(depozitoLinki)}">Depozito Öde</a>`
+    ? `<a class="btn block depozito-cta" target="_blank" rel="noopener" href="${esc(depozitoLinki)}">Depozito Öde</a>`
     : '';
   wrap.innerHTML = odemeButonuHtml + depozitoOnayKutusuHtml() +
     `<button type="button" class="referans-yeni-randevu-btn" onclick="yeniRandevuBaslat()">Bunun yerine yeni randevu oluşturmak istiyorum</button>`;
