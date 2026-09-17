@@ -493,11 +493,39 @@ const app = initializeApp({
 const db = getFirestore(app);
 
 const AY_ADLARI = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
-// Stock-caka'nın admin panelindeki renk noktası paletiyle aynı (public/index.html içindeki CMAP) —
-// renk adı bilinmiyorsa nötr bir gri kullanılır.
-const CMAP = {Siyah:'#1a1a1a',Ekru:'#f5f0e0',Bordo:'#7b1e34',Lacivert:'#1a2a5e',Pudra:'#f2c4ce',
+// Stock-caka'nın admin panelindeki renk noktası paletiyle aynı taban (public/index.html içindeki
+// CMAP) — canlı magaza_urunler verisindeki TÜM renk adları (2026-09-17'de sorgulanıp) buraya
+// eklendi; İKAS'tan gelen adlar genelde BÜYÜK HARFLE geliyor, elle eklenenler Baş Harf Büyük —
+// aşağıdaki renkHex() büyük/küçük harf farkını (Türkçe İ/i kurallarına göre) yok sayarak eşleştirir.
+// İki tonlu adlar (ör. "SİYAH / BEYAZ") ilk renge göre gösterilir. Bilinmeyen bir ad gelirse nötr
+// bir gri kullanılır.
+const CMAP = {
+  // Stock-caka ile paylaşılan taban
+  Siyah:'#1a1a1a',Ekru:'#f5f0e0',Bordo:'#7b1e34',Lacivert:'#1a2a5e',Pudra:'#f2c4ce',
   'Yeşil':'#4a7c59',Mor:'#5b3d8a','Kırmızı':'#c0392b','Altın':'#c9a84c','Gümüş':'#a8a9ad',
-  Mavi:'#2e6fb4',Bej:'#d4b896',Beyaz:'#f8f8f8',Pembe:'#f4a7b9',Kahverengi:'#7b5533',Vizon:'#b7a58f'};
+  Mavi:'#2e6fb4',Bej:'#d4b896',Beyaz:'#f8f8f8',Pembe:'#f4a7b9',Kahverengi:'#7b5533',Vizon:'#b7a58f',
+  // Canlı üründeki ek renk adları
+  'AÇIK MAVİ':'#7ab8e0','BAKIR':'#b87333','BAKIR RENGİ':'#b87333','BEBE MAVİSİ':'#a8d0e6',
+  'BURGONYA':'#6d1b2f','BUZ MAVİSİ':'#c9e6f0','CAPPUCINO RENGİ':'#8a6349','FUŞYA':'#c4258f',
+  'GECE MAVİSİ':'#0f1a3d','GRİ':'#8c8c8c','GÖK MAVİSİ':'#5b9bd5','HAKİ YEŞİLİ':'#7d7b4f',
+  'KAYISI':'#f0a868','KEMİK RENGİ':'#e8dcc8','KOYU MOR':'#3d1f5c','KOYU YEŞİL':'#1f4d2e',
+  'KOYU İNDİGO':'#1a1a4d','KREM RENGİ':'#f5edd8','KUM BEJİ':'#d9c19a','KÜF':'#6b6b3a',
+  'LAVANTA':'#b9a4d4','LEOPAR':'#c9a063','LİLA':'#c9a8d4','MOCCA':'#6f4e37','MÜRDÜM':'#4a1f3d',
+  'MİNT':'#98d8c0','PARLEMENT MAVİSİ':'#1e3a8a','PETROL YEŞİLİ':'#1f5c5c','SAKS MAVİSİ':'#4a90c4',
+  'SARI':'#e8c547','SU YEŞİLİ':'#4fc3c3','TAŞ RENGİ':'#a89f91','TEREYAĞI':'#f0e0a0',
+  'TOZ PEMBE':'#e0b8be','VİŞNE RENGİ':'#6b1a2e','ÇAĞLA YEŞİLİ':'#a8c25a','İNDİGO':'#3730a3',
+  'ŞEKER PEMBE':'#f5a3c7',
+  // İki tonlu adlar — ilk rengin hex'i kullanılır
+  'KEMİK / SİYAH':'#e8dcc8','LACİVERT/GOLD':'#1a2a5e','SAKS / GÜMÜŞ':'#4a90c4',
+  'SİYAH / BEYAZ':'#1a1a1a','SİYAH / BRONZ':'#1a1a1a','SİYAH / GOLD':'#1a1a1a',
+};
+// Büyük/küçük harf farkını yok sayan arama tablosu — İKAS renk adları genelde tümü büyük harfle
+// geliyor (ör. "SİYAH"), elle eklenen adlar Baş Harf Büyük (ör. "Siyah") olabiliyor.
+const CMAP_NORMALIZED = {};
+Object.keys(CMAP).forEach(k => { CMAP_NORMALIZED[k.toLocaleUpperCase('tr')] = CMAP[k]; });
+function renkHex(renk){
+  return CMAP_NORMALIZED[String(renk||'').toLocaleUpperCase('tr')] || '#bbb';
+}
 
 let products = [];        // magaza_urunler dokümanları
 let selected = [];         // seçilen varyantlar: {urunId,urunAdi,urunKodu,sku,renk,beden,gorselUrl,bd}
@@ -687,7 +715,7 @@ function renderRenkBedenFiltre(){
     renkWrap.classList.remove('hidden');
     renkWrap.innerHTML = '<span class="filtre-etiket">Renk</span>' + [
       `<button type="button" class="renk-filtre-chip${!aktifRenkFiltre?' active':''}" data-renk="">Tümü</button>`,
-      ...renkler.map(r=>`<button type="button" class="renk-filtre-chip${aktifRenkFiltre===r?' active':''}" data-renk="${esc(r)}"><span class="renk-nokta" style="background:${CMAP[r]||'#bbb'}"></span>${esc(r)}</button>`)
+      ...renkler.map(r=>`<button type="button" class="renk-filtre-chip${aktifRenkFiltre===r?' active':''}" data-renk="${esc(r)}"><span class="renk-nokta" style="background:${renkHex(r)}"></span>${esc(r)}</button>`)
     ].join('');
     renkWrap.querySelectorAll('.renk-filtre-chip').forEach(btn=>{
       btn.addEventListener('click', ()=>{ aktifRenkFiltre = btn.dataset.renk; gorunenUrunSayisi = URUN_SAYFA_BOYUTU; renderRenkBedenFiltre(); renderUrunler(); });
@@ -777,7 +805,7 @@ function urunKartInnerHtml(p, buyuk){
   // Tek renkli ürünlerde de swatch gösteriliyor (sadece metin değil) — aksi halde renk-row
   // yüksekliği ürüne göre değişip aynı sıradaki kartlarda beden/buton hizasını kaydırıyordu.
   const renkRowHtml = renkler.length ? `<div class="renk-row">
-      ${renkler.map(r=>`<button type="button" class="renk-swatch${r===aktifRenk?' active':''}" data-uid="${esc(p.id)}" data-renk="${esc(r)}" style="background:${CMAP[r]||'#bbb'}" title="${esc(r)}"></button>`).join('')}
+      ${renkler.map(r=>`<button type="button" class="renk-swatch${r===aktifRenk?' active':''}" data-uid="${esc(p.id)}" data-renk="${esc(r)}" style="background:${renkHex(r)}" title="${esc(r)}"></button>`).join('')}
       <span class="renk-adi">${esc(aktifRenk)}</span>
     </div>` : '';
 
